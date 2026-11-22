@@ -271,7 +271,7 @@ build\:web: setup lint test ## Build full web deployment package (Flask + Gunico
 	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py zrouter-gui.py web_app.py
 	@echo "==> Copying application files"
 	cp zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
-	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web $(DIST)/web/
+	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web requirements-runtime.txt requirements-web.txt $(DIST)/web/
 	mv $(DIST)/web/.dockerignore.web $(DIST)/web/.dockerignore
 	@echo "==> Copying templates and static assets"
 	cp -r templates/* $(DIST)/web/templates/
@@ -288,7 +288,7 @@ build\:web\:dev: setup lint test ## Build web dev package (hot-reload, debug)
 	@mkdir -p $(DIST)/web/templates $(DIST)/web/static/img
 	$(VENV_PYTHON) -m py_compile zrouter.py web_app.py
 	cp zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
-	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web $(DIST)/web/
+	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web requirements-runtime.txt requirements-web.txt $(DIST)/web/
 	mv $(DIST)/web/.dockerignore.web $(DIST)/web/.dockerignore
 	cp -r templates/* $(DIST)/web/templates/
 	cp -r static/* $(DIST)/web/static/
@@ -302,7 +302,7 @@ build\:web\:prod: setup lint test ## Build web production package (gunicorn, opt
 	@mkdir -p $(DIST)/web/templates $(DIST)/web/static/img
 	$(VENV_PYTHON) -m py_compile zrouter.py web_app.py
 	cp zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
-	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web $(DIST)/web/
+	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web requirements-runtime.txt requirements-web.txt $(DIST)/web/
 	mv $(DIST)/web/.dockerignore.web $(DIST)/web/.dockerignore
 	cp -r templates/* $(DIST)/web/templates/
 	cp -r static/* $(DIST)/web/static/
@@ -316,7 +316,7 @@ build\:web\:ent: setup lint test ## Build web enterprise package (all features +
 	@mkdir -p $(DIST)/web/templates $(DIST)/web/static/img
 	$(VENV_PYTHON) -m py_compile zrouter.py web_app.py
 	cp zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
-	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web $(DIST)/web/
+	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web requirements-runtime.txt requirements-web.txt $(DIST)/web/
 	mv $(DIST)/web/.dockerignore.web $(DIST)/web/.dockerignore
 	cp -r templates/* $(DIST)/web/templates/
 	cp -r static/* $(DIST)/web/static/
