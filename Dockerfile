@@ -60,8 +60,8 @@ ENV NVIDIA_MAX_WAIT=60
 EXPOSE 8000
 
 # Health check (requires ROUTER_TOKEN; /health is authenticated)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f -H "Authorization: Bearer ${ROUTER_TOKEN}" http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:8000/livez || exit 1
 
 # Default command: run the OpenAI-compatible proxy.
 # Binding to 0.0.0.0 exposes the proxy on all interfaces; ROUTER_TOKEN is
