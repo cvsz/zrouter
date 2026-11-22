@@ -156,12 +156,12 @@ serve: ## Run the OpenAI-compatible proxy on :8000 (set keys + token first)
 
 lint: ## Run ruff check and ruff format --check
 	@echo "==> Linting with ruff"
-	$(VENV_PYTHON) -m ruff check zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py zrouter-gui.py zrouter-tui.py
-	$(VENV_PYTHON) -m ruff format --check zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py zrouter-gui.py zrouter-tui.py
+	$(VENV_PYTHON) -m ruff check zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py test_zrouter_http.py zrouter-gui.py zrouter-tui.py zrouter-tui.py
+	$(VENV_PYTHON) -m ruff format --check zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py test_zrouter_http.py zrouter-gui.py zrouter-tui.py zrouter-tui.py
 
 format: ## Format code with ruff
 	@echo "==> Formatting with ruff"
-	$(VENV_PYTHON) -m ruff format zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py zrouter-gui.py
+	$(VENV_PYTHON) -m ruff format zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py test_zrouter_http.py zrouter-gui.py zrouter-tui.py
 
 clean: ## Remove virtualenv, build artifacts, dist, and Python caches
 	@echo "==> Cleaning"
