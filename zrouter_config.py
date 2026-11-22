@@ -400,7 +400,6 @@ def load_keys(
 # --------------------------------------------------------------------------- cache
 
 
-
 def read_secret_file(path: str | None, max_bytes: int = 16 * 1024) -> str | None:
     """Read a bounded secret file without following symlinks or logging its value."""
     if not path:
