@@ -70,18 +70,33 @@ The automated results above apply to the validated code commit listed above. Any
 
 ## Phase 4 — application extraction and runtime acceptance
 
-- Extract configuration/provider loading into `zrouter_config.py`, model catalog into `zrouter_catalog.py`, router application into `zrouter_application.py`, and CLI dispatch into `zrouter_cli.py`.
-- Preserve `zrouter.py` as the compatibility facade and executable entry point; add import-identity and CLI parser regression tests.
-- Add bounded no-follow `ROUTER_TOKEN_FILE` support and Docker Compose file-secret injection for provider keys and router tokens.
-- Add minimal unauthenticated `/livez`; retain bearer authentication on operational and inference endpoints.
-- Correct runtime/web Docker module manifests, provision non-root writable home directories, add named persistent volumes, and split runtime/web dependency manifests.
-- Add stream-disconnect and bounded concurrent health-request tests.
-- Add Docker image build/runtime smoke workflow using synthetic credentials only.
-- Add native keyring integration matrix for Linux SecretService, macOS Keychain, and Windows Credential Locker.
-- Add a manual, one-request NVIDIA NIM smoke workflow with typed authorization, curated model validation, official HTTPS endpoint pinning, bounded timeout, and no retries.
-- Code extraction and new runtime workflows are committed on the PR branch. Automated results for the current head are **PENDING**; do not reuse earlier Phase 3 CI results as evidence for this phase.
-- Native keyring platform results, Docker build/runtime results, and the exact current-head CI/CodeQL runs must be recorded after completion.
-- Real NVIDIA NIM execution is **BLOCKED** until an authorized `NVIDIA_NIM_API_KEY` repository secret is configured and an operator manually triggers the gated workflow.
-- Production deployment, migration, and rollback are **NOT VERIFIED** because no zrouter target host/environment has been identified or accessed. No production mutation was performed.
-- Docker containers do not mount native OS credential stores; vault secret CRUD intentionally remains unavailable in the default container runtime.
-- Legacy vault migration is not backward-compatible with pre-keyring releases. After migration, prefer forward recovery; do not blindly roll back to plaintext-vault code.
+Validated PR head: `d19d6e4d561cace01c077fadb5d2cbb59faa2114`.
+
+### Completed implementation
+- Extracted configuration/provider loading into `zrouter_config.py`, curated model catalog into `zrouter_catalog.py`, router application into `zrouter_application.py`, and CLI dispatch into `zrouter_cli.py`.
+- Retained `zrouter.py` as the compatibility facade and executable entry point; regression tests verify import identity and CLI command parsing.
+- Added bounded, regular-file-only, no-symlink support for `ROUTER_TOKEN_FILE` and `NVIDIA_KEYS_FILE`; Docker Compose injects API keys and router tokens through read-only secret mounts.
+- Added minimal public `/livez`; operational and inference endpoints remain bearer-authenticated.
+- Corrected both Docker images: complete module manifests, production dependency manifests, non-root UID/GID 10001, writable application home, named persistence volumes, loopback-only Compose publishing, and Docker liveness checks.
+- Added end-to-end HTTP tests for stream client disconnect cleanup and 96 concurrent authenticated health requests.
+- Added Docker image build/runtime smoke checks for both proxy and web images using synthetic credentials and mounted secret files only.
+- Added native credential-store integration matrix for Linux SecretService, macOS Keychain, and Windows Credential Locker.
+- Added a manual-only NVIDIA NIM smoke workflow and script: one synthetic prompt, no retries, fixed official HTTPS endpoint, curated model allowlist, bounded timeout, suppressed response body, and typed authorization.
+- Added deployment, vault migration, backup, rollback, and production acceptance runbook.
+
+### CI evidence
+- [CI/CD run #136](https://github.com/cvsz/zrouter/actions/runs/45057596330): **PASS** — Ruff lint/format, **117 tests passed, 1 skipped, 31 subtests passed**, Linux PyInstaller build, and artifact upload.
+- [Runtime Validation run #136](https://github.com/cvsz/zrouter/actions/runs/45057596283): **PASS** — both Docker images built and ran; Compose secret configuration validated; router and web liveness/authenticated health checks passed using synthetic test credentials.
+- Native keyring matrix in Runtime Validation: **PASS** — Linux SecretService, macOS Keychain, and Windows Credential Locker. Each platform performed a synthetic secret round-trip and cleanup.
+- [CodeQL run #136](https://github.com/cvsz/zrouter/actions/runs/45057596317): **PASS** — Python and GitHub Actions.
+- [Linux executable artifact](https://github.com/cvsz/zrouter/actions/runs/45057596330/artifacts/14768296607).
+
+### Explicitly not executed / residual limits
+- **Live NVIDIA NIM request:** not executed. The workflow is manual-only and requires the repository secret `NVIDIA_NIM_API_KEY` plus typed authorization. The catalog's `free: true` flag is not a billing guarantee; the operator must verify current pricing/quotas before triggering it.
+- **Production deployment, migration, and rollback:** not executed. No zrouter target host/environment or operator access was provided. The runbook records preconditions and the backward-compatibility boundary.
+- The default Docker images do not mount a host-native credential store; Vault secret CRUD intentionally fails closed inside those containers.
+- The streaming-disconnect and concurrency tests use a synthetic in-process router, not a live NVIDIA stream or production traffic. The load test is bounded to 96 concurrent health requests; it is not a throughput/SLO benchmark.
+- Docker image runtime smoke tests validate startup, file-secret reads, liveness, and authentication; they do not send inference requests to NVIDIA.
+- Local clone/test execution was unavailable in this environment; the recorded GitHub Actions runners performed the validation above.
+
+No merge, release, tag, production migration, or deployment was performed.
