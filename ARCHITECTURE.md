@@ -37,15 +37,17 @@ CLI / GUI / TUI / Web Dashboard / OpenAI clients
 | Event-driven lifecycle | Router outcomes and health/statistics boundaries | Add events only where consumers exist; avoid unused event bus |
 | Streaming lifecycle | Existing SSE response ownership and close-on-cancel rules | Always close upstream response |
 | Permission broker | Proxy bearer auth and explicit bot approval boundaries | No unauthenticated public bind |
-| Local-first persistence | JSON config/statistics and bot stores | Restrict file permissions; document encryption status accurately |
+| Local-first persistence | JSON config/statistics and bot stores | Secrets use native OS credential storage; other bot stores remain plaintext JSON |
 
 ## Current module boundaries
 
-- `zrouter.py`: compatibility facade, CLI, router application, request/response contracts.
+- `zrouter.py`: compatibility facade, CLI, router application, and stable wrappers for HTTP adapter functions.
+- `zrouter_contracts.py`: shared router error and maximum request-size contracts.
+- `zrouter_http.py`: HTTP request parsing, authentication boundary, handlers, streaming lifecycle, and server lifecycle.
 - `zrouter_core.py`: provider definitions, registry, and endpoint validation.
 - `zrouter_runtime.py`: thread-safe rate limiter, statistics persistence, TTL/LRU cache, and key masking primitives; `zrouter.py` re-exports the stable names.
 - `zrouter_bot_models.py`: bot enums and serializable domain models; this is the canonical definition module.
-- `zrouter_bot_storage.py`: local bot-home paths, vault persistence, and per-bot memory persistence.
+- `zrouter_bot_storage.py`: local bot-home paths, native OS keyring-backed vault persistence, explicit legacy migration, and per-bot memory persistence.
 - `zrouter_bot.py`: bot services/managers and compatibility re-exports for model and storage types. Existing `from zrouter_bot import ...` imports remain supported.
 - `web_app.py`: Flask web adapter; delegates inference to `FreeRouter`.
 - `models.json`: curated model metadata. `free: true` is an explicit curation decision, not a value inferred from model names.
