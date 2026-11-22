@@ -98,7 +98,9 @@ def make_handler(router: Any, token: str | None, routes: dict[str, list[str]]):
                 )
             try:
                 if self.path.rstrip("/") == "/v1/models":
-                    ids = ["auto"] + [f"free-{r}" for r in routes] + router.all_allowed()
+                    ids = (
+                        ["auto"] + [f"free-{r}" for r in routes] + router.all_allowed()
+                    )
                     return self._json(
                         200,
                         {
