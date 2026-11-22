@@ -33,7 +33,9 @@ class TestNativeKeyringIntegration(unittest.TestCase):
                 restored = vault.get(entry_id)
                 self.assertIsNotNone(restored)
                 self.assertEqual(restored.value, secret_value)
-                self.assertNotIn(secret_value["token"], vault_path.read_text(encoding="utf-8"))
+                self.assertNotIn(
+                    secret_value["token"], vault_path.read_text(encoding="utf-8")
+                )
                 self.assertTrue(KEYRING_SERVICE)
             finally:
                 vault.delete(entry_id)
