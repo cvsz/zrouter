@@ -74,7 +74,12 @@ jobs:
           status=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18081/health)
           test "$status" = "401"
           curl -fsS -H 'Authorization: Bearer synthetic-ci-token' http://127.0.0.1:18081/health | python -c 'import json,sys; data=json.load(sys.stdin); assert data["ok"] is True and len(data["keys"]) == 1'
-          docker inspect --format '{{.State.Health.Status}}' zrouter-web-ci | grep -qx healthy
+          for attempt in $(seq 1 40); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' zrouter-web-ci)
+            if [ "$status" = "healthy" ]; then break; fi
+            sleep 2
+          done
+          test "$(docker inspect --format '{{.State.Health.Status}}' zrouter-web-ci)" = "healthy"
 
   native-keyring:
     name: Native keyring (${{ matrix.os }})
@@ -110,6 +115,7 @@ jobs:
             eval "$(gnome-keyring-daemon --start --components=secrets)"
             printf "\n" | gnome-keyring-daemon --unlock --components=secrets >/dev/null
             export PYTHON_KEYRING_BACKEND=keyring.backends.SecretService.Keyring
+            export ZROUTER_NATIVE_KEYRING=1
             python -m pytest -q tests/test_native_keyring.py
           '
 
@@ -127,6 +133,8 @@ jobs:
 
       - name: Run macOS Keychain integration
         if: runner.os == 'macOS'
+        env:
+          ZROUTER_NATIVE_KEYRING: "1"
         run: python -m pytest -q tests/test_native_keyring.py
 
       - name: Delete temporary macOS Keychain
@@ -135,4 +143,6 @@ jobs:
 
       - name: Run Windows Credential Locker integration
         if: runner.os == 'Windows'
+        env:
+          ZROUTER_NATIVE_KEYRING: "1"
         run: python -m pytest -q tests/test_native_keyring.py
