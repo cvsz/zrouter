@@ -35,7 +35,10 @@ class VaultBackend(Protocol):
 
 
 class KeyringVaultBackend:
-    """Adapter for supported native OS credential stores; insecure backends are rejected."""
+    """Adapter for supported native OS credential stores.
+
+    Insecure backends are rejected.
+    """
 
     _ALLOWED_BACKENDS = (
         "keyring.backends.SecretService",
@@ -53,7 +56,9 @@ class KeyringVaultBackend:
         backend = keyring.get_keyring()
         module = type(backend).__module__
         priority = getattr(backend, "priority", 0)
-        if priority <= 0 or not any(module.startswith(name) for name in self._ALLOWED_BACKENDS):
+        if priority <= 0 or not any(
+            module.startswith(name) for name in self._ALLOWED_BACKENDS
+        ):
             raise RuntimeError(
                 "no supported native OS credential store is available; "
                 "configure SecretService, macOS Keychain, or Windows Credential Locker. "
@@ -86,7 +91,7 @@ def _validate_entry_id(entry_id: str) -> str:
 
 
 class Vault:
-    """Credential metadata on disk; credential values live only in the native OS keyring."""
+    """Credential metadata on disk; values live only in the native OS keyring."""
 
     def __init__(
         self, path: Path = VAULT_FILE, backend: VaultBackend | None = None
@@ -189,7 +194,11 @@ class Vault:
                 value = backend.get(entry.id) if backend is not None else None
                 if value is None:
                     raise RuntimeError(f"vault secret is missing for entry {entry.id!r}")
-                result.append(VaultEntry.from_dict({**entry.to_dict(), "value": json.loads(value)}))
+                result.append(
+                    VaultEntry.from_dict(
+                        {**entry.to_dict(), "value": json.loads(value)}
+                    )
+                )
             return result
 
     def get(self, entry_id: str) -> VaultEntry | None:
@@ -211,7 +220,9 @@ class Vault:
             previous = backend.get(entry.id)
             old_entry = self._entries.get(entry.id)
             backend.set(entry.id, encoded)
-            self._entries[entry.id] = VaultEntry.from_dict({**entry.to_dict(), "value": {}})
+            self._entries[entry.id] = VaultEntry.from_dict(
+                {**entry.to_dict(), "value": {}}
+            )
             try:
                 self._save_index()
             except Exception:
@@ -235,8 +246,13 @@ class Vault:
             previous = backend.get(entry_id)
             if previous is None:
                 raise RuntimeError(f"vault secret is missing for entry {entry_id!r}")
-            backend.set(entry_id, json.dumps(value, separators=(",", ":"), ensure_ascii=False))
-            updated = VaultEntry.from_dict({**entry.to_dict(), "value": {}, "updated_at": time.time()})
+            backend.set(
+                entry_id,
+                json.dumps(value, separators=(",", ":"), ensure_ascii=False),
+            )
+            updated = VaultEntry.from_dict(
+                {**entry.to_dict(), "value": {}, "updated_at": time.time()}
+            )
             self._entries[entry_id] = updated
             try:
                 self._save_index()
@@ -294,7 +310,12 @@ class Vault:
         written: list[str] = []
         try:
             for entry in entries:
-                store.set(entry.id, json.dumps(entry.value, separators=(",", ":"), ensure_ascii=False))
+                store.set(
+                    entry.id,
+                    json.dumps(
+                        entry.value, separators=(",", ":"), ensure_ascii=False
+                    ),
+                )
                 written.append(entry.id)
             metadata = object.__new__(cls)
             metadata.path = path
