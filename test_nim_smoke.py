@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from scripts.nim_smoke import load_allowed_model, run_smoke
 
@@ -33,9 +33,9 @@ class TestNvidiaNimSmoke(unittest.TestCase):
         response.json.return_value = {
             "choices": [{"message": {"content": "zrouter-nim-smoke-ok"}}]
         }
-        session = Mock()
-        session.__enter__ = Mock(return_value=session)
-        session.__exit__ = Mock(return_value=None)
+        session = MagicMock()
+        session.__enter__.return_value = session
+        session.__exit__.return_value = None
         session.post.return_value = response
         with (
             patch.dict(
