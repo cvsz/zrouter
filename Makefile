@@ -277,7 +277,7 @@ build\:web: setup lint test ## Build full web deployment package (Flask + Gunico
 	cp -r templates/* $(DIST)/web/templates/
 	cp -r static/* $(DIST)/web/static/
 	@echo "==> Writing requirements.txt"
-	printf 'flask==3.1.0\ngunicorn==23.0.0\nrequests==2.34.2\n' > $(DIST)/web/requirements.txt
+	cp requirements-web.txt $(DIST)/web/requirements.txt
 	@echo "==> Web package ready in $(DIST)/web/"
 	@echo "==> Run: cd $(DIST)/web && pip install -r requirements.txt && NVIDIA_API_KEYS=\"...\" python web_app.py"
 	@echo "==> Or with gunicorn: gunicorn -c gunicorn.conf.py web_app:app"
@@ -292,7 +292,7 @@ build\:web\:dev: setup lint test ## Build web dev package (hot-reload, debug)
 	mv $(DIST)/web/.dockerignore.web $(DIST)/web/.dockerignore
 	cp -r templates/* $(DIST)/web/templates/
 	cp -r static/* $(DIST)/web/static/
-	printf 'flask==3.1.0\ngunicorn==23.0.0\nrequests==2.34.2\n' > $(DIST)/web/requirements.txt
+	cp requirements-web.txt $(DIST)/web/requirements.txt
 	@echo "==> Web dev package ready in $(DIST)/web/"
 	@echo "==> Run: cd $(DIST)/web && pip install -r requirements.txt && NVIDIA_API_KEYS=\"...\" WEB_DEBUG=1 python web_app.py"
 
@@ -306,7 +306,7 @@ build\:web\:prod: setup lint test ## Build web production package (gunicorn, opt
 	mv $(DIST)/web/.dockerignore.web $(DIST)/web/.dockerignore
 	cp -r templates/* $(DIST)/web/templates/
 	cp -r static/* $(DIST)/web/static/
-	printf 'flask==3.1.0\ngunicorn==23.0.0\nrequests==2.34.2\n' > $(DIST)/web/requirements.txt
+	cp requirements-web.txt $(DIST)/web/requirements.txt
 	@echo "==> Web production package ready in $(DIST)/web/"
 	@echo "==> Run: cd $(DIST)/web && pip install -r requirements.txt && gunicorn -c gunicorn.conf.py web_app:app"
 
@@ -320,7 +320,7 @@ build\:web\:ent: setup lint test ## Build web enterprise package (all features +
 	mv $(DIST)/web/.dockerignore.web $(DIST)/web/.dockerignore
 	cp -r templates/* $(DIST)/web/templates/
 	cp -r static/* $(DIST)/web/static/
-	printf 'flask==3.1.0\ngunicorn==23.0.0\nrequests==2.34.2\n' > $(DIST)/web/requirements.txt
+	cp requirements-web.txt $(DIST)/web/requirements.txt
 	@echo "==> Web enterprise package ready in $(DIST)/web/"
 	@echo "==> Run: cd $(DIST)/web && pip install -r requirements.txt && gunicorn -c gunicorn.conf.py web_app:app"
 
