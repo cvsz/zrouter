@@ -21,7 +21,9 @@ COPY static ./static
 COPY gunicorn.conf.py ./
 
 # Non-root user
-RUN groupadd -r appuser && useradd -r -g appuser -s /bin/false appuser
+RUN groupadd -r appuser && \
+    useradd -r -m -d /home/appuser -g appuser -s /bin/false appuser && \
+    install -d -o appuser -g appuser -m 0700 /home/appuser/.zrouter_bot /home/appuser/.nvidia_free_router
 RUN chown -R appuser:appuser /app
 USER appuser
 
@@ -35,8 +37,11 @@ ENV NVIDIA_RPM=35
 ENV NVIDIA_CACHE_TTL=3600
 ENV NVIDIA_TIMEOUT=90
 ENV NVIDIA_MAX_WAIT=60
+ENV NVIDIA_ROUTER_HOME=/home/appuser/.nvidia_free_router
 
 EXPOSE 8000
+
+VOLUME ["/home/appuser/.zrouter_bot", "/home/appuser/.nvidia_free_router"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -fsS http://127.0.0.1:8000/livez || exit 1
