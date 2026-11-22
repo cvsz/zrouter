@@ -167,6 +167,23 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) สำหรับรายละเอ
 | SEC-006 | Proxy token auth (ROUTER_TOKEN) | Implemented |
 | SEC-007 | Bot vault at rest | Native OS keyring; plaintext fallback disabled; legacy JSON requires explicit migration |
 
+### Legacy vault migration
+
+Existing plaintext vault files are not read or rewritten automatically. First configure and unlock a supported native credential store, then run this explicit migration once:
+
+```python
+from pathlib import Path
+from zrouter_bot_storage import Vault
+
+migrated = Vault.migrate_legacy(
+    Path.home() / ".zrouter_bot" / "vault.json",
+    confirm=True,
+)
+print(f"Migrated {migrated} vault entries")
+```
+
+The migration replaces the active JSON file with a metadata-only index. It cannot guarantee secure erasure of historical filesystem blocks, snapshots, or backups. Do not copy the legacy vault into logs, tickets, or source control.
+
 See [`SECURITY.md`](SECURITY.md) สำหรับรายละเอียด
 
 ---
