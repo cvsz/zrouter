@@ -224,7 +224,7 @@ class Vault:
                     raise RuntimeError(f"vault secret is missing for entry {entry.id!r}")
                 result.append(
                     VaultEntry.from_dict(
-                        {**entry.to_dict(), "value": json.loads(value)}
+                        {**entry.to_dict(), "value": _decode_secret(value)}
                     )
                 )
             return result
