@@ -15,17 +15,19 @@ class TestNvidiaNimSmoke(unittest.TestCase):
             load_allowed_model("not-in-catalog")
 
     def test_rejects_non_official_endpoint_before_network(self) -> None:
-        with patch.dict(
-            "os.environ",
-            {
-                "NVIDIA_API_KEY": "synthetic-test-key",
-                "NVIDIA_BASE_URL": "https://example.invalid/v1",
-            },
+        with (
+            patch.dict(
+                "os.environ",
+                {
+                    "NVIDIA_API_KEY": "synthetic-test-key",
+                    "NVIDIA_BASE_URL": "https://example.invalid/v1",
+                },
+            ),
+            patch("scripts.nim_smoke.requests.Session") as session,
         ):
-            with patch("scripts.nim_smoke.requests.Session") as session:
-                with self.assertRaisesRegex(ValueError, "official HTTPS NVIDIA"):
-                    run_smoke("nvidia/nemotron-3.5-bolt-e4b", timeout=5)
-                session.assert_not_called()
+            with self.assertRaisesRegex(ValueError, "official HTTPS NVIDIA"):
+                run_smoke("nvidia/nemotron-3.5-bolt-e4b", timeout=5)
+            session.assert_not_called()
 
     def test_sends_exactly_one_bounded_non_streaming_request(self) -> None:
         response = Mock()
