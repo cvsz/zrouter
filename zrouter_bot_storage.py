@@ -137,6 +137,8 @@ class Vault:
         try:
             flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
             fd = os.open(self.path, flags)
+            if os.name == "posix":
+                os.fchmod(fd, 0o600)
             try:
                 with os.fdopen(fd, "r", encoding="utf-8") as stream:
                     data = json.load(stream)
@@ -193,8 +195,6 @@ class Vault:
                 stream.flush()
                 os.fsync(stream.fileno())
             os.replace(tmp, self.path)
-            if os.name == "posix":
-                os.chmod(self.path, 0o600)
         except Exception:
             try:
                 os.close(fd)
@@ -329,7 +329,11 @@ class Vault:
         if path.is_symlink():
             raise RuntimeError("refusing to migrate a symlinked legacy vault")
         try:
-            with path.open("r", encoding="utf-8") as stream:
+            flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+            fd = os.open(path, flags)
+            if os.name == "posix":
+                os.fchmod(fd, 0o600)
+            with os.fdopen(fd, "r", encoding="utf-8") as stream:
                 raw_entries = json.load(stream)
             if not isinstance(raw_entries, list):
                 raise TypeError("legacy vault root must be a JSON array")
