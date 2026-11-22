@@ -13,6 +13,7 @@ from zrouter_contracts import MAX_REQUEST_BYTES, RouterError
 
 log = logging.getLogger("nvrouter")
 
+
 def _read_body(handler: BaseHTTPRequestHandler) -> tuple[int, dict[str, Any]]:
     """Read and parse the request body with a hard size cap."""
     try:
@@ -194,7 +195,13 @@ def _require_token_for_public_bind(host: str, token: str | None) -> None:
     sys.exit(1)
 
 
-def serve(router: Any, host: str, port: int, token: str | None, routes: dict[str, list[str]]) -> None:
+def serve(
+    router: Any,
+    host: str,
+    port: int,
+    token: str | None,
+    routes: dict[str, list[str]],
+) -> None:
     _require_token_for_public_bind(host, token)
     srv = ThreadingHTTPServer((host, port), make_handler(router, token, routes))
     srv.daemon_threads = True
