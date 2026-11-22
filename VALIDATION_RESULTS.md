@@ -66,3 +66,22 @@ The automated results above apply to the validated code commit listed above. Any
 - [Linux executable artifact](https://github.com/cvsz/zrouter/actions/runs/45052948407/artifacts/14766446868).
 - Local clone/test execution was unavailable because this environment could not resolve GitHub; the CI runner performed the validation above.
 - Docker image build/runtime, Windows/macOS keyring behavior, Linux SecretService integration, live NVIDIA NIM, streaming client-disconnect behavior, load behavior, and production deployment remain unverified.
+
+
+## Phase 4 — application extraction and runtime acceptance
+
+- Extract configuration/provider loading into `zrouter_config.py`, model catalog into `zrouter_catalog.py`, router application into `zrouter_application.py`, and CLI dispatch into `zrouter_cli.py`.
+- Preserve `zrouter.py` as the compatibility facade and executable entry point; add import-identity and CLI parser regression tests.
+- Add bounded no-follow `ROUTER_TOKEN_FILE` support and Docker Compose file-secret injection for provider keys and router tokens.
+- Add minimal unauthenticated `/livez`; retain bearer authentication on operational and inference endpoints.
+- Correct runtime/web Docker module manifests, provision non-root writable home directories, add named persistent volumes, and split runtime/web dependency manifests.
+- Add stream-disconnect and bounded concurrent health-request tests.
+- Add Docker image build/runtime smoke workflow using synthetic credentials only.
+- Add native keyring integration matrix for Linux SecretService, macOS Keychain, and Windows Credential Locker.
+- Add a manual, one-request NVIDIA NIM smoke workflow with typed authorization, curated model validation, official HTTPS endpoint pinning, bounded timeout, and no retries.
+- Code extraction and new runtime workflows are committed on the PR branch. Automated results for the current head are **PENDING**; do not reuse earlier Phase 3 CI results as evidence for this phase.
+- Native keyring platform results, Docker build/runtime results, and the exact current-head CI/CodeQL runs must be recorded after completion.
+- Real NVIDIA NIM execution is **BLOCKED** until an authorized `NVIDIA_NIM_API_KEY` repository secret is configured and an operator manually triggers the gated workflow.
+- Production deployment, migration, and rollback are **NOT VERIFIED** because no zrouter target host/environment has been identified or accessed. No production mutation was performed.
+- Docker containers do not mount native OS credential stores; vault secret CRUD intentionally remains unavailable in the default container runtime.
+- Legacy vault migration is not backward-compatible with pre-keyring releases. After migration, prefer forward recovery; do not blindly roll back to plaintext-vault code.
