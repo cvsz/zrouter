@@ -73,6 +73,6 @@ zrouter supports multiple LLM providers:
 
 ## Known limitations
 
-- The current `zrouter_bot.Vault` implementation stores credential values as ordinary JSON and is **not encrypted at rest**. The vault file is restricted to mode `0600` and its directory to `0700` on POSIX systems, but this does not protect against the same OS user, root, or a compromised process. Do not use it as a substitute for an OS-backed secret manager or store high-value production credentials there.
+- Bot vault values are stored in a supported native OS credential store (SecretService, macOS Keychain, or Windows Credential Locker). The JSON index contains metadata only. Unsupported/insecure keyring backends are rejected and plaintext fallback is disabled. Headless Linux without SecretService cannot use vault operations until a native credential store is configured. Legacy plaintext vaults are rejected until an explicit migration is run; migration does not guarantee secure erasure of historical filesystem blocks, snapshots, or backups.
 - Local bot memory, routine, and skill stores are also JSON files. Treat access to the bot data directory as access to its contents.
 - Model discovery reports upstream availability only. Newly discovered models are not considered free until explicitly curated in the model catalog and route allowlist.
