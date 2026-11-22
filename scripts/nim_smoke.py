@@ -98,10 +98,14 @@ def run_smoke(model_id: str, timeout: float) -> None:
         choices = data.get("choices")
         content = choices[0]["message"]["content"] if choices else None
     except (ValueError, TypeError, KeyError, IndexError) as exc:
-        raise RuntimeError("NVIDIA NIM returned an invalid chat completion payload") from exc
+        raise RuntimeError(
+            "NVIDIA NIM returned an invalid chat completion payload"
+        ) from exc
     if not isinstance(content, str) or not content.strip():
         raise RuntimeError("NVIDIA NIM returned an empty completion")
-    print(f"PASS provider=NVIDIA model={model_id} status=200 latency_seconds={elapsed:.2f}")
+    print(
+        f"PASS provider=NVIDIA model={model_id} status=200 latency_seconds={elapsed:.2f}"
+    )
 
 
 def main() -> int:
