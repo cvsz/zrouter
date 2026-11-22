@@ -119,7 +119,6 @@ class TestVaultStorage(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "secret is missing"):
                 Vault(path, backend=InMemoryKeyring()).get("missing-1")
 
-
     def test_invalid_keyring_payload_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "vault.json"
