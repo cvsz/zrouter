@@ -165,7 +165,7 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) สำหรับรายละเอ
 | SEC-004 | Dead key drop (401/403) | ✅ FIXED |
 | SEC-005 | Input validation | ✅ FIXED |
 | SEC-006 | Proxy token auth (ROUTER_TOKEN) | Implemented |
-| SEC-007 | Bot vault encryption at rest | Plaintext JSON; POSIX file/directory permissions are 0600/0700; not encrypted |
+| SEC-007 | Bot vault at rest | Native OS keyring; plaintext fallback disabled; legacy JSON requires explicit migration |
 
 See [`SECURITY.md`](SECURITY.md) สำหรับรายละเอียด
 
@@ -195,7 +195,7 @@ Development dependencies:
 pip install -e '.[dev]'
 ```
 
-Optional groups: `dev` (pytest, ruff, pyinstaller), `web` (flask, gunicorn)
+Core runtime dependencies include `requests` and `keyring`; optional groups: `dev` (pytest, ruff, pyinstaller) and `web` (flask, gunicorn)
 
 ### Verification
 
