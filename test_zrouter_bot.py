@@ -53,7 +53,10 @@ class TestVaultStorage(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "vault.json"
             entry = VaultEntry(
-                id="legacy-1", name="legacy", kind="login", value={"password": "old-secret"}
+                id="legacy-1",
+                name="legacy",
+                kind="login",
+                value={"password": "old-secret"},
             )
             path.write_text(json.dumps([entry.to_dict()]), encoding="utf-8")
             with self.assertRaisesRegex(RuntimeError, "legacy plaintext vault"):
@@ -65,7 +68,10 @@ class TestVaultStorage(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "vault.json"
             entry = VaultEntry(
-                id="legacy-2", name="legacy", kind="login", value={"password": "old-secret"}
+                id="legacy-2",
+                name="legacy",
+                kind="login",
+                value={"password": "old-secret"},
             )
             path.write_text(json.dumps([entry.to_dict()]), encoding="utf-8")
             backend = InMemoryKeyring()
@@ -85,7 +91,9 @@ class TestVaultStorage(unittest.TestCase):
             errors=SimpleNamespace(PasswordDeleteError=Exception),
         )
         with mock.patch.dict(sys.modules, {"keyring": fake_keyring}):
-            with self.assertRaisesRegex(RuntimeError, "Plaintext fallback is intentionally disabled"):
+            with self.assertRaisesRegex(
+                RuntimeError, "Plaintext fallback is intentionally disabled"
+            ):
                 KeyringVaultBackend()
 
     def test_missing_keyring_secret_fails_closed(self):
