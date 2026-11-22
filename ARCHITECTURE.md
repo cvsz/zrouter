@@ -68,5 +68,5 @@ Keep public imports and commands in `zrouter.py` stable while extracting interna
 ## Known follow-up audit items
 
 - The vault requires a supported native OS credential store (SecretService, macOS Keychain, or Windows Credential Locker). Headless Linux without SecretService has no vault functionality; plaintext fallback is disabled. Legacy migration does not guarantee secure erasure of historical filesystem blocks, snapshots, or backups.
-- The bot file handler and JSON stores need a dedicated permission, atomic-write, and corruption-recovery review.
+- The bot file handler and non-secret JSON stores need a dedicated permission, atomic-write, and corruption-recovery review.
 - The existing README/validation report contains historical coverage/build claims that must be replaced with evidence from exact CI commits.
