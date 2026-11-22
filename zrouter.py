@@ -1202,6 +1202,7 @@ class FreeRouter:
 
 # --------------------------------------------------------------------------- HTTP adapter
 
+
 def make_handler(router: FreeRouter, token: str | None):
     """Compatibility wrapper for the public HTTP handler factory."""
     return _make_http_handler(router, token, CFG.routes)
