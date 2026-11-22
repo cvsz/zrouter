@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import threading
+import time
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from http.server import ThreadingHTTPServer
 
 import requests
@@ -20,6 +22,13 @@ class FakeStream:
 
     def close(self):
         self.closed.set()
+
+
+class SlowStream(FakeStream):
+    def iter_lines(self):
+        for index in range(1000):
+            yield f"data: chunk-{index}".encode()
+            time.sleep(0.01)
 
 
 class FakeRouter:
@@ -88,6 +97,11 @@ class TestHttpAdapterIntegration(unittest.TestCase):
     def auth_headers(self):
         return {"Authorization": f"Bearer {self.token}"}
 
+    def test_liveness_probe_is_public_and_contains_no_key_metadata(self):
+        response = requests.get(f"{self.base_url}/livez", timeout=3)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"ok": True})
+
     def test_rejects_missing_bearer_token(self):
         response = requests.get(f"{self.base_url}/health", timeout=3)
         self.assertEqual(response.status_code, 401)
@@ -128,6 +142,36 @@ class TestHttpAdapterIntegration(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["id"], "test-response")
         self.assertEqual(response.headers["X-Router-Model"], "model-a")
+
+    def test_stream_client_disconnect_closes_upstream_response(self):
+        stream = SlowStream()
+        self.router.stream = stream
+        response = requests.post(
+            f"{self.base_url}/v1/chat/completions",
+            json={"model": "model-a", "messages": [], "stream": True},
+            headers=self.auth_headers(),
+            stream=True,
+            timeout=3,
+        )
+        iterator = response.iter_lines()
+        self.assertTrue(next(iterator).startswith(b"data: chunk-"))
+        response.close()
+        self.assertTrue(stream.closed.wait(timeout=3))
+
+    def test_health_endpoint_handles_bounded_concurrency(self):
+        def check_health(_):
+            response = requests.get(
+                f"{self.base_url}/health",
+                headers=self.auth_headers(),
+                timeout=5,
+            )
+            response.raise_for_status()
+            return response.json()["ok"]
+
+        with ThreadPoolExecutor(max_workers=16) as pool:
+            results = list(pool.map(check_health, range(96)))
+        self.assertEqual(len(results), 96)
+        self.assertTrue(all(results))
 
     def test_stream_response_is_closed_after_consumption(self):
         response = requests.post(
