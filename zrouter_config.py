@@ -373,13 +373,13 @@ def load_keys(
             with os.fdopen(fd, "r", encoding="utf-8") as stream:
                 fd = -1
                 content = stream.read(64 * 1024 + 1)
-            if len(content.encode("utf-8")) > 64 * 1024 or "\\0" in content:
+            if len(content.encode("utf-8")) > 64 * 1024 or chr(0) in content:
                 raise ValueError("NVIDIA keys file is invalid or too large")
         finally:
             if fd >= 0:
                 os.close(fd)
         for line in content.splitlines():
-            raw += re.split(r"[,\\s]+", line.split("#", 1)[0].strip())
+            raw += re.split(r"[,\s]+", line.split("#", 1)[0].strip())
 
     # Load keys from provider.json (preserving per-provider base URLs)
     providers_cfg = ProviderConfig(providers_file or PROVIDERS_PATH)
