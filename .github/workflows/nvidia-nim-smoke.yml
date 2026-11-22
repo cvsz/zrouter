@@ -1,0 +1,45 @@
+name: Authorized NVIDIA NIM Smoke Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      authorization:
+        description: "Type RUN_ONE_NVIDIA_NIM_REQUEST to authorize exactly one external request (may incur provider charges)."
+        required: true
+        type: string
+      model_id:
+        description: "Model ID already curated as NVIDIA/free in models.json."
+        required: true
+        default: "nvidia/nemotron-3.5-bolt-e4b"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  nim-smoke:
+    if: inputs.authorization == 'RUN_ONE_NVIDIA_NIM_REQUEST'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install runtime dependency
+        run: python -m pip install --disable-pip-version-check 'requests>=2.31'
+
+      - name: Perform one authorized NVIDIA NIM request
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_NIM_API_KEY }}
+          MODEL_ID: ${{ inputs.model_id }}
+        run: |
+          if [ -z "$NVIDIA_API_KEY" ]; then
+            echo "NVIDIA_NIM_API_KEY repository secret is not configured."
+            exit 1
+          fi
+          python scripts/nim_smoke.py --model "$MODEL_ID" --timeout 25
