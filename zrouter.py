@@ -52,7 +52,6 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import hashlib
-import hmac
 import json
 import logging
 import os
@@ -62,7 +61,6 @@ import threading
 import time
 import uuid
 from collections.abc import Iterator
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
 import requests
@@ -90,6 +88,14 @@ from zrouter_runtime import (
     Stats,
     TTLCache,
     mask,
+)
+from zrouter_contracts import MAX_REQUEST_BYTES, RouterError
+from zrouter_http import (
+    _LOOPBACK_HOSTS,
+    _read_body,
+    _require_token_for_public_bind,
+    make_handler as _make_http_handler,
+    serve as _serve_http,
 )
 
 log = logging.getLogger("nvrouter")
@@ -1190,16 +1196,6 @@ class FreeRouter:
 
 
 # --------------------------------------------------------------------------- HTTP adapter
-
-from zrouter_contracts import MAX_REQUEST_BYTES, RouterError
-from zrouter_http import (
-    _LOOPBACK_HOSTS,
-    _read_body,
-    _require_token_for_public_bind,
-    make_handler as _make_http_handler,
-    serve as _serve_http,
-)
-
 
 def make_handler(router: FreeRouter, token: str | None):
     """Compatibility wrapper for the public HTTP handler factory."""
