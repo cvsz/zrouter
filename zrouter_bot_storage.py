@@ -90,7 +90,6 @@ def _validate_entry_id(entry_id: str) -> str:
     return entry_id
 
 
-
 def _decode_secret(value: str) -> dict[str, Any]:
     try:
         decoded = json.loads(value)
