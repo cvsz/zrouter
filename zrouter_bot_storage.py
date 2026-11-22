@@ -296,11 +296,14 @@ class Vault:
             for entry in entries:
                 store.set(entry.id, json.dumps(entry.value, separators=(",", ":"), ensure_ascii=False))
                 written.append(entry.id)
-            metadata = cls(path, backend=store)
+            metadata = object.__new__(cls)
+            metadata.path = path
+            metadata._backend = store
             metadata._entries = {
                 entry.id: VaultEntry.from_dict({**entry.to_dict(), "value": {}})
                 for entry in entries
             }
+            metadata._lock = threading.RLock()
             metadata._save_index()
         except Exception:
             for entry_id in written:
