@@ -33,6 +33,7 @@ from zrouter_contracts import RouterError
 from zrouter_http import serve as _serve_http
 from zrouter_runtime import Stats
 
+
 def serve(router: FreeRouter, host: str, port: int, token: str | None) -> None:
     """Call the HTTP adapter using the current route configuration."""
     _serve_http(router, host, port, token, CFG.routes)
