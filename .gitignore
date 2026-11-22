@@ -73,3 +73,6 @@ coverage/
 
 # Turbo
 .turbo/
+
+# Local secret files mounted by Docker Compose
+secrets/
