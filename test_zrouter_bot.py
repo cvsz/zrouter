@@ -81,7 +81,6 @@ class TestVaultStorage(unittest.TestCase):
             self.assertEqual(restored.get("legacy-2").value, {"password": "old-secret"})
             self.assertNotIn("old-secret", path.read_text(encoding="utf-8"))
 
-
     def test_insecure_keyring_backend_is_rejected(self):
         class InsecureBackend:
             __module__ = "keyrings.alt.file"
@@ -103,10 +102,18 @@ class TestVaultStorage(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "vault.json"
             path.write_text(
-                json.dumps([{
-                    "id": "missing-1", "name": "missing", "kind": "secret",
-                    "value": {}, "created_at": 1.0, "updated_at": 1.0
-                }]),
+                json.dumps(
+                    [
+                        {
+                            "id": "missing-1",
+                            "name": "missing",
+                            "kind": "secret",
+                            "value": {},
+                            "created_at": 1.0,
+                            "updated_at": 1.0,
+                        }
+                    ]
+                ),
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(RuntimeError, "secret is missing"):
@@ -117,10 +124,18 @@ class TestVaultStorage(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "vault.json"
             path.write_text(
-                json.dumps([{
-                    "id": "bad-1", "name": "bad", "kind": "secret",
-                    "value": {}, "created_at": 1.0, "updated_at": 1.0
-                }]),
+                json.dumps(
+                    [
+                        {
+                            "id": "bad-1",
+                            "name": "bad",
+                            "kind": "secret",
+                            "value": {},
+                            "created_at": 1.0,
+                            "updated_at": 1.0,
+                        }
+                    ]
+                ),
                 encoding="utf-8",
             )
             backend = InMemoryKeyring()
