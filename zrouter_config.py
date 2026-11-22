@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+import stat
 import sys
 from typing import Any
 
@@ -395,3 +396,39 @@ def load_keys(
 
 
 # --------------------------------------------------------------------------- cache
+
+
+
+def read_secret_file(path: str | None, max_bytes: int = 16 * 1024) -> str | None:
+    """Read a bounded secret file without following symlinks or logging its value."""
+    if not path:
+        return None
+    if not isinstance(path, str) or not path.strip():
+        raise ValueError("secret file path must be a non-empty string")
+    if max_bytes < 1:
+        raise ValueError("max_bytes must be positive")
+    if os.path.islink(path):
+        raise ValueError("refusing to read a symlinked secret file")
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags)
+    except OSError as exc:
+        raise RuntimeError("unable to open configured secret file") from exc
+    try:
+        metadata = os.fstat(fd)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise ValueError("secret file must be a regular file")
+        if metadata.st_size > max_bytes:
+            raise ValueError("secret file exceeds the configured size limit")
+        with os.fdopen(fd, "r", encoding="utf-8") as stream:
+            fd = -1
+            value = stream.read(max_bytes + 1)
+        if len(value.encode("utf-8")) > max_bytes:
+            raise ValueError("secret file exceeds the configured size limit")
+        value = value.strip()
+        if not value or any(char in value for char in "\\r\\n\\0"):
+            raise ValueError("secret file must contain one non-empty line")
+        return value
+    finally:
+        if fd >= 0:
+            os.close(fd)
