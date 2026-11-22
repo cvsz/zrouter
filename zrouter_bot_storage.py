@@ -97,13 +97,13 @@ def _decode_secret(value: str) -> dict[str, Any]:
     except (TypeError, ValueError) as exc:
         raise RuntimeError("vault secret payload is invalid JSON") from exc
     if not isinstance(decoded, dict):
-        raise RuntimeError("vault secret payload must be a JSON object")
+        raise TypeError("vault secret payload must be a JSON object")
     return decoded
 
 
 def _encode_secret(value: dict[str, Any]) -> str:
     if not isinstance(value, dict):
-        raise ValueError("vault secret value must be a JSON object")
+        raise TypeError("vault secret value must be a JSON object")
     try:
         return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
     except (TypeError, ValueError) as exc:
