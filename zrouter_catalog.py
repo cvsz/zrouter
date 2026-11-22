@@ -7,7 +7,7 @@ import os
 from typing import TYPE_CHECKING, Any
 
 from zrouter_contracts import RouterError
-from zrouter_config import MODELS_PATH, _resource_path
+from zrouter_config import _resource_path
 
 if TYPE_CHECKING:
     from zrouter_application import FreeRouter
