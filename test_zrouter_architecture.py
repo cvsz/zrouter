@@ -34,7 +34,7 @@ class TestArchitectureCompatibility(unittest.TestCase):
     def test_secret_file_reader_is_bounded_and_rejects_symlinks(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             secret_path = Path(directory) / "router-token"
-            secret_path.write_text("synthetic-token\\n", encoding="utf-8")
+            secret_path.write_text("synthetic-token" + chr(10), encoding="utf-8")
             self.assertEqual(read_secret_file(str(secret_path)), "synthetic-token")
             with self.assertRaisesRegex(ValueError, "size limit"):
                 read_secret_file(str(secret_path), max_bytes=4)
