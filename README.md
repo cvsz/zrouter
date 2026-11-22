@@ -102,7 +102,7 @@ zrouter ไม่ต้องการฐานข้อมูลภายนอ
 
 ### 🏗️ Architecture
 
-Bot domain models are defined in `zrouter_bot_models.py`; local Vault/Memory persistence lives in `zrouter_bot_storage.py`; shared runtime primitives live in `zrouter_runtime.py`. `zrouter.py` and `zrouter_bot.py` re-export established names to preserve existing imports. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for module boundaries.
+The public `zrouter.py` facade preserves established imports while configuration/provider loading, model catalog, router application, and CLI dispatch live in `zrouter_config.py`, `zrouter_catalog.py`, `zrouter_application.py`, and `zrouter_cli.py`. Bot domain models are defined in `zrouter_bot_models.py`; Vault/Memory persistence lives in `zrouter_bot_storage.py`; shared runtime primitives live in `zrouter_runtime.py`. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for module boundaries.
 
 <p align="center">
   <img src="static/img/nvidia.png" alt="NVIDIA" width="64" height="64" />
@@ -151,7 +151,7 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) สำหรับรายละเอ
 | **Caching** | Response cache (temperature == 0, ไม่มี tools, non-stream) |
 | **Stats** | Persistent stats ต่อ model / ต่อ key |
 | **Proxy** | OpenAI-compatible proxy server |
-| **Observability** | `/health`, `/stats`, structured JSON logs |
+| **Observability** | `/livez` (minimal liveness), authenticated `/health` and `/stats`, structured JSON logs |
 
 ---
 
@@ -437,7 +437,8 @@ The image installs the runtime dependency set from `requirements.txt`; Dependabo
 ### Health Endpoints
 
 ```bash
-GET /health       # Health + key status
+GET /livez        # Public liveness only; no key metadata
+GET /health       # Bearer-authenticated key status
 GET /v1/models    # OpenAI model list
 GET /stats        # Per-model / per-key statistics
 POST /v1/chat/completions  # OpenAI-compatible chat
