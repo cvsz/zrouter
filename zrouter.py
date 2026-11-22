@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# ruff: noqa: I001
+
 """
 zrouter.py — backward-compatible public facade for the NVIDIA NIM router.
 
