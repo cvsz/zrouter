@@ -26,7 +26,6 @@ jobs:
           chmod 0400 secrets/nvidia_api_keys.txt secrets/router_token.txt
           sudo chown 10001:10001 secrets/nvidia_api_keys.txt secrets/router_token.txt
           docker compose -f docker-compose.web.yml config --quiet
-          rm -rf secrets
 
       - name: Build router image
         run: docker build --pull -f Dockerfile -t zrouter:ci .
@@ -35,8 +34,10 @@ jobs:
         run: |
           docker run -d --name zrouter-ci \
             -p 127.0.0.1:18080:8000 \
-            -e NVIDIA_API_KEY=synthetic-ci-key \
-            -e ROUTER_TOKEN=synthetic-ci-token \
+            --mount type=bind,src="$PWD/secrets/nvidia_api_keys.txt",dst=/run/secrets/nvidia_api_keys,readonly \
+            --mount type=bind,src="$PWD/secrets/router_token.txt",dst=/run/secrets/router_token,readonly \
+            -e NVIDIA_KEYS_FILE=/run/secrets/nvidia_api_keys \
+            -e ROUTER_TOKEN_FILE=/run/secrets/router_token \
             zrouter:ci
 
       - name: Smoke test router container
@@ -66,8 +67,10 @@ jobs:
         run: |
           docker run -d --name zrouter-web-ci \
             -p 127.0.0.1:18081:8000 \
-            -e NVIDIA_API_KEY=synthetic-ci-key \
-            -e ROUTER_TOKEN=synthetic-ci-token \
+            --mount type=bind,src="$PWD/secrets/nvidia_api_keys.txt",dst=/run/secrets/nvidia_api_keys,readonly \
+            --mount type=bind,src="$PWD/secrets/router_token.txt",dst=/run/secrets/router_token,readonly \
+            -e NVIDIA_KEYS_FILE=/run/secrets/nvidia_api_keys \
+            -e ROUTER_TOKEN_FILE=/run/secrets/router_token \
             zrouter-web:ci
 
       - name: Smoke test web container
@@ -159,3 +162,8 @@ jobs:
         env:
           ZROUTER_NATIVE_KEYRING: "1"
         run: python -m pytest -q tests/test_native_keyring.py
+
+
+      - name: Remove synthetic secret files
+        if: always()
+        run: rm -rf secrets
