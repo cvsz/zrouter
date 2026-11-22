@@ -60,4 +60,9 @@ The automated results above apply to the validated code commit listed above. Any
 - Reject unsupported/insecure keyring implementations and fail closed when no native credential store is available.
 - Detect legacy plaintext vaults; migration requires an explicit `confirm=True` call and does not claim secure erasure of historical filesystem blocks or backups.
 - Add keyring dependency and update packaging/container source manifests.
-- Validation status: pending CI for the exact implementation commit. Docker, desktop OS keyring behavior, and live NVIDIA NIM remain unverified until exercised in target environments.
+- Validated runtime code commit: `03e8e2e1fbc0790e0665456a0f9c014ac5ec12ed`.
+- [CI/CD run](https://github.com/cvsz/zrouter/actions/runs/45052948407): **PASS** — Ruff lint/format, **103 tests passed and 31 subtests passed**, Linux PyInstaller executable build, and artifact upload.
+- [CodeQL run](https://github.com/cvsz/zrouter/actions/runs/45052948410): **PASS** — Python and GitHub Actions.
+- [Linux executable artifact](https://github.com/cvsz/zrouter/actions/runs/45052948407/artifacts/14766446868).
+- Local clone/test execution was unavailable because this environment could not resolve GitHub; the CI runner performed the validation above.
+- Docker image build/runtime, Windows/macOS keyring behavior, Linux SecretService integration, live NVIDIA NIM, streaming client-disconnect behavior, load behavior, and production deployment remain unverified.
