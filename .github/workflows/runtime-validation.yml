@@ -19,10 +19,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate Compose configuration
-        env:
-          NVIDIA_API_KEYS: synthetic-ci-key
-          ROUTER_TOKEN: synthetic-ci-token
-        run: docker compose -f docker-compose.web.yml config --quiet
+        run: |
+          mkdir -p secrets
+          printf '%s' 'synthetic-ci-key' > secrets/nvidia_api_keys.txt
+          printf '%s' 'synthetic-ci-token' > secrets/router_token.txt
+          chmod 0400 secrets/nvidia_api_keys.txt secrets/router_token.txt
+          docker compose -f docker-compose.web.yml config --quiet
+          rm -rf secrets
 
       - name: Build router image
         run: docker build --pull -f Dockerfile -t zrouter:ci .
