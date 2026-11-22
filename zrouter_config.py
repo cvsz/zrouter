@@ -428,7 +428,7 @@ def read_secret_file(path: str | None, max_bytes: int = 16 * 1024) -> str | None
         if len(value.encode("utf-8")) > max_bytes:
             raise ValueError("secret file exceeds the configured size limit")
         value = value.strip()
-        if not value or any(char in value for char in "\\r\\n\\0"):
+        if not value or any(char in value for char in "\r\n\0"):
             raise ValueError("secret file must contain one non-empty line")
         return value
     finally:
