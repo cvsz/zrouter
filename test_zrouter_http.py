@@ -179,6 +179,8 @@ class TestHttpAdapterIntegration(unittest.TestCase):
         self.assertTrue(all(results))
 
     def test_stream_response_is_closed_after_consumption(self):
+        stream = FakeStream()
+        self.router.stream = stream
         response = requests.post(
             f"{self.base_url}/v1/chat/completions",
             json={"model": "model-a", "messages": [], "stream": True},
@@ -191,7 +193,7 @@ class TestHttpAdapterIntegration(unittest.TestCase):
         finally:
             response.close()
         self.assertIn(b"data: [DONE]", body)
-        self.assertTrue(self.router.stream.closed.wait(timeout=2))
+        self.assertTrue(stream.closed.wait(timeout=2))
 
 
 if __name__ == "__main__":
