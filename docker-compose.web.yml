@@ -6,7 +6,7 @@ services:
     ports:
       - "127.0.0.1:${WEB_PORT:-8000}:8000"
     environment:
-      NVIDIA_API_KEYS: ${NVIDIA_API_KEYS:?NVIDIA_API_KEYS must be configured}
+      NVIDIA_KEYS_FILE: /run/secrets/nvidia_api_keys
       NVIDIA_BASE_URL: https://integrate.api.nvidia.com/v1
       NVIDIA_RPM: "35"
       NVIDIA_CACHE_TTL: "3600"
@@ -15,7 +15,10 @@ services:
       NVIDIA_ROUTER_HOME: /home/appuser/.nvidia_free_router
       WEB_HOST: 0.0.0.0
       WEB_PORT: "8000"
-      ROUTER_TOKEN: ${ROUTER_TOKEN:?ROUTER_TOKEN must be configured}
+      ROUTER_TOKEN_FILE: /run/secrets/router_token
+    secrets:
+      - nvidia_api_keys
+      - router_token
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/livez"]
       interval: 30s
@@ -30,3 +33,9 @@ services:
 volumes:
   zrouter_bot_data:
   zrouter_stats:
+
+secrets:
+  nvidia_api_keys:
+    file: ./secrets/nvidia_api_keys.txt
+  router_token:
+    file: ./secrets/router_token.txt
