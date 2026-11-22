@@ -42,12 +42,15 @@ umask 077
 printf '%s' "$NVIDIA_API_KEYS" > secrets/nvidia_api_keys.txt
 printf '%s' "$ROUTER_TOKEN" > secrets/router_token.txt
 chmod 0400 secrets/nvidia_api_keys.txt secrets/router_token.txt
+sudo chown 10001:10001 secrets/nvidia_api_keys.txt secrets/router_token.txt
 unset NVIDIA_API_KEYS ROUTER_TOKEN
 
 docker compose -f docker-compose.web.yml config --quiet
 docker compose -f docker-compose.web.yml up -d --build
 docker compose -f docker-compose.web.yml ps
 ```
+
+The image runs as fixed non-root UID/GID `10001:10001`. For local file-backed Compose secrets, the files must be readable by that container identity; the commands above assign ownership to UID/GID 10001 and mode 0400. Docker Compose's local file-backed secrets do not remap file ownership/mode on every platform, so verify this on the target Docker engine.
 
 The Compose file mounts these files as Docker secrets:
 - `/run/secrets/nvidia_api_keys`, read through `NVIDIA_KEYS_FILE`;
