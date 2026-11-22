@@ -89,11 +89,9 @@ from zrouter_runtime import (
     TTLCache,
     mask,
 )
-from zrouter_contracts import MAX_REQUEST_BYTES, RouterError
+from zrouter_contracts import MAX_REQUEST_BYTES as MAX_REQUEST_BYTES, RouterError
 from zrouter_http import (
-    _LOOPBACK_HOSTS,
-    _read_body,
-    _require_token_for_public_bind,
+    _read_body as _read_body,
     make_handler as _make_http_handler,
     serve as _serve_http,
 )
