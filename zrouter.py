@@ -82,11 +82,16 @@ from zrouter_bot import (
     VaultEntry,
     get_bot,
 )
-from zrouter_contracts import MAX_REQUEST_BYTES as _MAX_REQUEST_BYTES, RouterError
+from zrouter_contracts import MAX_REQUEST_BYTES as _MAX_REQUEST_BYTES
+from zrouter_contracts import RouterError
 from zrouter_core import ProviderRegistry, validate_base_url
 from zrouter_http import (
     _read_body as _http_read_body,
+)
+from zrouter_http import (
     make_handler as _make_http_handler,
+)
+from zrouter_http import (
     serve as _serve_http,
 )
 from zrouter_runtime import (
