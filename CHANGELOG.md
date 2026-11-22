@@ -7,23 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Extract router settings/provider configuration and API-key loading into `zrouter_config.py`, curated model catalog into `zrouter_catalog.py`, inference/routing application into `zrouter_application.py`, and CLI dispatch into `zrouter_cli.py`; retain the legacy `zrouter.py` facade and public import identities.
+- Add authenticated HTTP stream-disconnect and bounded concurrent-load regression tests.
+- Add public, metadata-free `/livez` probes while keeping `/health` and operational endpoints bearer-authenticated.
+- Add Docker runtime/web image build and smoke-test workflows, including synthetic-key container checks and Compose configuration validation.
+- Add native OS keyring integration workflow for Linux SecretService, macOS Keychain, and Windows Credential Locker.
+- Add a manual, one-request NVIDIA NIM smoke workflow gated by explicit typed authorization and the `NVIDIA_NIM_API_KEY` repository secret.
+
+### Security
+- Support bounded, regular-file-only, no-symlink reads for `ROUTER_TOKEN_FILE`; inject Docker Compose API keys and router tokens through mounted secrets instead of container environment values.
+- Bind Docker Compose host ports to loopback by default and persist bot metadata/statistics in named volumes.
+- Provision a writable, non-root application home in both container images.
+- Keep the containerized vault fail-closed: Docker images do not mount a host native credential store, so vault secret CRUD is not available inside the default containers.
+
+### Changed
+- Split production runtime and web dependency manifests; ensure Flask/Gunicorn are installed in the web image.
+- Add the extracted modules to setuptools, Docker images, Makefile lint, and build/source bundles.
+- Change Docker health checks to use `/livez`, which does not disclose key status or require credentials.
+
+### Operational
+- Add an explicit migration and rollback runbook. Legacy vault migration is not backward-compatible with the prior plaintext implementation; rollback after migration requires a separately approved recovery procedure.
+- Add an optional manual NVIDIA NIM smoke script with no retries, a fixed official NVIDIA endpoint, a curated model allowlist, and a synthetic prompt.
+
 ### Security
 - Fail closed when live model discovery cannot match an explicitly configured route allowlist; no fallback to arbitrary live models.
 - Do not infer a model's free/paid status from its name or route classification.
 - Require exact model IDs or explicit glob patterns for route matching.
 - Validate provider base URLs and reject non-loopback plaintext HTTP, embedded credentials, query strings, and fragments.
+- Replace plaintext bot-vault persistence with native OS credential-store integration; reject unsupported/insecure backends and disable plaintext fallback.
+- Detect legacy plaintext vault files and require explicit migration; keep credential values out of the on-disk JSON index.
 
 ### Changed
+- Extract the HTTP adapter into `zrouter_http.py` and shared error/request-size contracts into `zrouter_contracts.py`; retain the public `zrouter.py` compatibility wrappers.
 - Extract 3 bot enums and 17 serializable domain models into `zrouter_bot_models.py`; keep their original `zrouter_bot` import paths as compatibility re-exports.
 - Extract `Vault`, `Memory`, and bot-home storage paths into `zrouter_bot_storage.py`; preserve the original `zrouter_bot` import surface.
 - Extract `RateLimiter`, `Stats`, `TTLCache`, and `mask` into `zrouter_runtime.py`; preserve their original `zrouter` import paths.
-- Include the extracted module in Python packaging, Docker images, Makefile source bundles, lint, and regression tests.
+- Include extracted modules and the keyring runtime dependency in Python packaging, Docker images, Makefile source bundles, lint, and regression tests.
 - Introduce a dedicated provider registry module while preserving the existing ProviderConfig compatibility surface.
 - Validate provider metadata before it is accepted by the router.
-- Expand the test target to discover all test modules and include provider-registry checks.
+- Expand the test target to discover all test modules and include provider-registry and HTTP-boundary checks.
 - Correct the CI Make invocation and reduce the unit-test job token to read-only permissions.
 - Add CodeQL analysis for Python and GitHub Actions on main-branch pushes and pull requests.
-- Restrict POSIX bot-vault directory/file permissions to 0700/0600, use atomic writes, reject symlinks, and fail closed on corrupted vault data; encryption remains a documented limitation.
+- Restrict POSIX vault-index directory/file permissions to 0700/0600 and use atomic replacement; encryption/key management is delegated to the OS credential store.
+- Remove private `provider.json` from release artifact copy steps; runtime credentials/config remain external.
 
 ## [1.0.0] - 2026-11-15
 

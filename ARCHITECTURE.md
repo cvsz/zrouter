@@ -37,17 +37,24 @@ CLI / GUI / TUI / Web Dashboard / OpenAI clients
 | Event-driven lifecycle | Router outcomes and health/statistics boundaries | Add events only where consumers exist; avoid unused event bus |
 | Streaming lifecycle | Existing SSE response ownership and close-on-cancel rules | Always close upstream response |
 | Permission broker | Proxy bearer auth and explicit bot approval boundaries | No unauthenticated public bind |
-| Local-first persistence | JSON config/statistics and bot stores | Restrict file permissions; document encryption status accurately |
+| Local-first persistence | JSON config/statistics and bot stores | Secrets use native OS credential storage; other bot stores remain plaintext JSON |
 
 ## Current module boundaries
 
-- `zrouter.py`: compatibility facade, CLI, router application, request/response contracts.
+- `zrouter.py`: backward-compatible public facade and executable entry point; it re-exports established names without owning application logic.
+- `zrouter_config.py`: validated runtime settings, provider configuration, API-key loading, and bounded no-follow secret-file reads.
+- `zrouter_catalog.py`: curated model metadata, free-tier curation, and live model discovery.
+- `zrouter_application.py`: `FreeRouter`, prompt classification, provider failover, routing policy, caching, and inference operations.
+- `zrouter_cli.py`: argument parser, help topics, command dispatch, and bot CLI commands.
+- `zrouter_contracts.py`: shared router error and maximum request-size contracts.
+- `zrouter_http.py`: HTTP request parsing, bearer authentication, handlers, streaming lifecycle, and server lifecycle. `/livez` is a minimal unauthenticated liveness probe; operational endpoints remain authenticated.
 - `zrouter_core.py`: provider definitions, registry, and endpoint validation.
 - `zrouter_runtime.py`: thread-safe rate limiter, statistics persistence, TTL/LRU cache, and key masking primitives; `zrouter.py` re-exports the stable names.
 - `zrouter_bot_models.py`: bot enums and serializable domain models; this is the canonical definition module.
-- `zrouter_bot_storage.py`: local bot-home paths, vault persistence, and per-bot memory persistence.
+- `zrouter_bot_storage.py`: local bot-home paths, native OS keyring-backed vault persistence, explicit legacy migration, and per-bot memory persistence.
 - `zrouter_bot.py`: bot services/managers and compatibility re-exports for model and storage types. Existing `from zrouter_bot import ...` imports remain supported.
-- `web_app.py`: Flask web adapter; delegates inference to `FreeRouter`.
+- `web_app.py`: Flask web adapter; delegates inference to `FreeRouter` and supports protected token-file injection.
+- `Dockerfile`, `Dockerfile.web`, and `docker-compose.web.yml`: non-root runtime images, read-only Docker secret injection, loopback-only host port publishing, and persistent metadata/statistics volumes.
 - `models.json`: curated model metadata. `free: true` is an explicit curation decision, not a value inferred from model names.
 
 ## Routing and cost invariants
@@ -65,6 +72,6 @@ Keep public imports and commands in `zrouter.py` stable while extracting interna
 
 ## Known follow-up audit items
 
-- `zrouter_bot.Vault` stores plaintext JSON. POSIX file/directory modes are restricted to `0600`/`0700`, but that does not encrypt data or protect against the same OS user; do not store high-value production credentials there.
-- The bot file handler and JSON stores need a dedicated permission, atomic-write, and corruption-recovery review.
+- The vault requires a supported native OS credential store (SecretService, macOS Keychain, or Windows Credential Locker). Headless Linux without SecretService has no vault functionality; plaintext fallback is disabled. Legacy migration does not guarantee secure erasure of historical filesystem blocks, snapshots, or backups.
+- The bot file handler and non-secret JSON stores need a dedicated permission, atomic-write, and corruption-recovery review.
 - The existing README/validation report contains historical coverage/build claims that must be replaced with evidence from exact CI commits.

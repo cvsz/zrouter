@@ -10,18 +10,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Python dependencies
-COPY requirements.txt ./
+COPY requirements-runtime.txt requirements-web.txt ./
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements-web.txt
 
 # Application files (NOT provider.json — keys must come from env)
-COPY zrouter.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py web_app.py models.json ./
+COPY zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py web_app.py models.json ./
 COPY templates ./templates
 COPY static ./static
 COPY gunicorn.conf.py ./
 
 # Non-root user
-RUN groupadd -r appuser && useradd -r -g appuser -s /bin/false appuser
+RUN groupadd -g 10001 -r appuser && \
+    useradd -u 10001 -r -m -d /home/appuser -g appuser -s /bin/false appuser && \
+    install -d -o appuser -g appuser -m 0700 /home/appuser/.zrouter_bot /home/appuser/.nvidia_free_router
 RUN chown -R appuser:appuser /app
 USER appuser
 
@@ -35,10 +37,13 @@ ENV NVIDIA_RPM=35
 ENV NVIDIA_CACHE_TTL=3600
 ENV NVIDIA_TIMEOUT=90
 ENV NVIDIA_MAX_WAIT=60
+ENV NVIDIA_ROUTER_HOME=/home/appuser/.nvidia_free_router
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f -H "Authorization: Bearer ${ROUTER_TOKEN}" http://localhost:8000/health || exit 1
+VOLUME ["/home/appuser/.zrouter_bot", "/home/appuser/.nvidia_free_router"]
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:8000/livez || exit 1
 
 ENTRYPOINT ["gunicorn", "-c", "gunicorn.conf.py", "web_app:app"]

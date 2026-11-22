@@ -35,7 +35,7 @@ zrouter is designed with security in mind:
 
 - **No hardcoded API keys** - All API keys must be provided via environment variables or provider.json (which is gitignored)
 - **No secrets in Docker images** - provider.json is not copied into Docker images
-- **Token-based authentication** - The proxy server supports bearer token authentication via `ROUTER_TOKEN`. It is **mandatory** when binding to a non-loopback interface (e.g. `0.0.0.0`); `serve()` fails closed and refuses to start unauthenticated on `0.0.0.0`. `/health` and `/stats` require a valid token when one is configured.
+- **Token-based authentication** - The proxy server supports bearer token authentication via `ROUTER_TOKEN` or a bounded `ROUTER_TOKEN_FILE`. It is **mandatory** when binding to a non-loopback interface (e.g. `0.0.0.0`); `serve()` fails closed without it. `/health` and `/stats` require a valid token when one is configured. `/livez` is the only intentionally public health probe and returns only `{"ok": true}`.
 - **Input validation** - All request bodies are validated as JSON objects
 - **Request size limits** - Maximum request body size is 16 MiB
 - **Thread-safe** - All shared state is protected by locks
@@ -71,8 +71,15 @@ zrouter supports multiple LLM providers:
 5. **Rotate keys regularly** - Rotate API keys periodically
 6. **Monitor usage** - Check stats endpoint for unusual activity
 
+## Container security notes
+
+- Docker Compose binds host ports to `127.0.0.1` by default. Use a separately reviewed reverse-proxy/TLS path for external access.
+- Docker Compose mounts NVIDIA API keys and router tokens as files under `/run/secrets`; local source files under `secrets/` are gitignored.
+- Container images run as a non-root user and persist bot metadata/statistics in named volumes.
+- Native OS credential stores are not mounted into the default containers. Vault secret CRUD therefore fails closed inside Docker; use a host-native runtime with SecretService/Keychain/Credential Locker for vault operations.
+
 ## Known limitations
 
-- The current `zrouter_bot.Vault` implementation stores credential values as ordinary JSON and is **not encrypted at rest**. The vault file is restricted to mode `0600` and its directory to `0700` on POSIX systems, but this does not protect against the same OS user, root, or a compromised process. Do not use it as a substitute for an OS-backed secret manager or store high-value production credentials there.
+- Bot vault values are stored in a supported native OS credential store (SecretService, macOS Keychain, or Windows Credential Locker). The JSON index contains metadata only. Unsupported/insecure keyring backends are rejected and plaintext fallback is disabled. Headless Linux without SecretService cannot use vault operations until a native credential store is configured. Legacy plaintext vaults are rejected until an explicit migration is run; migration does not guarantee secure erasure of historical filesystem blocks, snapshots, or backups.
 - Local bot memory, routine, and skill stores are also JSON files. Treat access to the bot data directory as access to its contents.
 - Model discovery reports upstream availability only. Newly discovered models are not considered free until explicitly curated in the model catalog and route allowlist.

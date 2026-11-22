@@ -13,6 +13,10 @@ class TestBotStorageCompatibility(unittest.TestCase):
         self.assertIs(zrouter_bot.Vault, zrouter_bot_storage.Vault)
         self.assertIs(zrouter_bot.Memory, zrouter_bot_storage.Memory)
 
+    def test_vault_storage_class_keeps_secure_backend_contract(self):
+        self.assertTrue(hasattr(zrouter_bot_storage, "KeyringVaultBackend"))
+        self.assertTrue(hasattr(zrouter_bot_storage, "VaultBackend"))
+
     def test_memory_round_trip(self):
         with tempfile.TemporaryDirectory() as directory:
             store = zrouter_bot_storage.Memory(Path(directory) / "memory.json")

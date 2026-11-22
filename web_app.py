@@ -43,6 +43,7 @@ if _HERE not in sys.path:
 
 # Import the core router (functions/classes defined in zrouter.py)
 from zrouter import CFG, FreeRouter, RouterError
+from zrouter_config import read_secret_file
 
 logging.basicConfig(
     level=logging.INFO,
@@ -80,7 +81,9 @@ def _get_router() -> FreeRouter:
 # --------------------------------------------------------------------------- #
 # Auth
 # --------------------------------------------------------------------------- #
-_token: str | None = os.environ.get("ROUTER_TOKEN")
+_token: str | None = os.environ.get("ROUTER_TOKEN") or read_secret_file(
+    os.environ.get("ROUTER_TOKEN_FILE")
+)
 
 
 def _authed() -> bool:
@@ -106,6 +109,12 @@ def _require_auth() -> Any:
 def index() -> str:
     """Browser chat UI."""
     return render_template("index.html")
+
+
+@app.get("/livez")
+def livez() -> Any:
+    """Unauthenticated liveness probe; returns no operational or secret metadata."""
+    return jsonify({"ok": True})
 
 
 @app.get("/health")

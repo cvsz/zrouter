@@ -102,7 +102,7 @@ zrouter ไม่ต้องการฐานข้อมูลภายนอ
 
 ### 🏗️ Architecture
 
-Bot domain models are defined in `zrouter_bot_models.py`; local Vault/Memory persistence lives in `zrouter_bot_storage.py`; shared runtime primitives live in `zrouter_runtime.py`. `zrouter.py` and `zrouter_bot.py` re-export established names to preserve existing imports. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for module boundaries.
+The public `zrouter.py` facade preserves established imports while configuration/provider loading, model catalog, router application, and CLI dispatch live in `zrouter_config.py`, `zrouter_catalog.py`, `zrouter_application.py`, and `zrouter_cli.py`. Bot domain models are defined in `zrouter_bot_models.py`; Vault/Memory persistence lives in `zrouter_bot_storage.py`; shared runtime primitives live in `zrouter_runtime.py`. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for module boundaries.
 
 <p align="center">
   <img src="static/img/nvidia.png" alt="NVIDIA" width="64" height="64" />
@@ -151,7 +151,7 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) สำหรับรายละเอ
 | **Caching** | Response cache (temperature == 0, ไม่มี tools, non-stream) |
 | **Stats** | Persistent stats ต่อ model / ต่อ key |
 | **Proxy** | OpenAI-compatible proxy server |
-| **Observability** | `/health`, `/stats`, structured JSON logs |
+| **Observability** | `/livez` (minimal liveness), authenticated `/health` and `/stats`, structured JSON logs |
 
 ---
 
@@ -165,7 +165,24 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) สำหรับรายละเอ
 | SEC-004 | Dead key drop (401/403) | ✅ FIXED |
 | SEC-005 | Input validation | ✅ FIXED |
 | SEC-006 | Proxy token auth (ROUTER_TOKEN) | Implemented |
-| SEC-007 | Bot vault encryption at rest | Plaintext JSON; POSIX file/directory permissions are 0600/0700; not encrypted |
+| SEC-007 | Bot vault at rest | Native OS keyring; plaintext fallback disabled; legacy JSON requires explicit migration |
+
+### Legacy vault migration
+
+Existing plaintext vault files are not read or rewritten automatically. First configure and unlock a supported native credential store, then run this explicit migration once:
+
+```python
+from pathlib import Path
+from zrouter_bot_storage import Vault
+
+migrated = Vault.migrate_legacy(
+    Path.home() / ".zrouter_bot" / "vault.json",
+    confirm=True,
+)
+print(f"Migrated {migrated} vault entries")
+```
+
+The migration replaces the active JSON file with a metadata-only index. It cannot guarantee secure erasure of historical filesystem blocks, snapshots, or backups. Do not copy the legacy vault into logs, tickets, or source control.
 
 See [`SECURITY.md`](SECURITY.md) สำหรับรายละเอียด
 
@@ -195,7 +212,7 @@ Development dependencies:
 pip install -e '.[dev]'
 ```
 
-Optional groups: `dev` (pytest, ruff, pyinstaller), `web` (flask, gunicorn)
+Core runtime dependencies include `requests` and `keyring`; optional groups: `dev` (pytest, ruff, pyinstaller) and `web` (flask, gunicorn)
 
 ### Verification
 
@@ -389,11 +406,15 @@ docker build -t zrouter:local .
 docker run --rm zrouter:local --version
 
 # Run the proxy server
+# Prefer docker compose with read-only secret files; see DEPLOYMENT.md.
+# Direct docker run requires mounting both secret files readable by UID 10001:
 docker run --rm -d \
   --name zrouter \
-  -p 8000:8000 \
-  -e NVIDIA_API_KEYS="nvapi-xxx,nvapi-yyy" \
-  -e ROUTER_TOKEN=changeme \
+  -p 127.0.0.1:8000:8000 \
+  --mount type=bind,src="$PWD/secrets/nvidia_api_keys.txt",dst=/run/secrets/nvidia_api_keys,readonly \
+  --mount type=bind,src="$PWD/secrets/router_token.txt",dst=/run/secrets/router_token,readonly \
+  -e NVIDIA_KEYS_FILE=/run/secrets/nvidia_api_keys \
+  -e ROUTER_TOKEN_FILE=/run/secrets/router_token \
   zrouter:local
 ```
 
@@ -403,15 +424,11 @@ docker run --rm -d \
 cd dist/web
 docker build -f Dockerfile.web -t zrouter-web:latest .
 
-docker run -d \
-  --name zrouter-web \
-  -p 8000:8000 \
-  -e NVIDIA_API_KEYS="nvapi-xxx,nvapi-yyy" \
-  -e ROUTER_TOKEN=changeme \
-  zrouter-web:latest
+# Prefer docker compose with read-only secret files; see DEPLOYMENT.md.
+docker compose -f docker-compose.web.yml up -d --build
 ```
 
-The image installs the runtime dependency set from `requirements.txt`; Dependabot proposes digest updates.
+The runtime image installs `requirements-runtime.txt`; the web image installs `requirements-web.txt` (which includes the runtime manifest). Both images run as non-root UID 10001.
 
 ---
 
@@ -420,7 +437,8 @@ The image installs the runtime dependency set from `requirements.txt`; Dependabo
 ### Health Endpoints
 
 ```bash
-GET /health       # Health + key status
+GET /livez        # Public liveness only; no key metadata
+GET /health       # Bearer-authenticated key status
 GET /v1/models    # OpenAI model list
 GET /stats        # Per-model / per-key statistics
 POST /v1/chat/completions  # OpenAI-compatible chat

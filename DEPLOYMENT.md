@@ -1,243 +1,142 @@
-# Deployment Guide — NVIDIA Free-Model Router
+# Deployment, Migration, and Recovery
 
-## Local Development
+## Deployment status
 
-### Prerequisites
-- Python 3.10+
-- pip
+No production deployment has been performed by this change. The repository's target production host, OS, service owner, network path, and current deployed commit have not been verified. Treat all commands below as a controlled deployment runbook, not evidence that a target environment is ready.
 
-### Quick Start
+## Local development
+
+Requirements: Python 3.10+.
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/zrouter.git
-cd zrouter
-
-# Create virtual environment
 python -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install -e .
-
-# Set your NVIDIA API key(s)
-export NVIDIA_API_KEYS="nvapi-xxx,nvapi-yyy"
-
-# Run the router
-python zrouter.py chat "hello"
+. .venv/bin/activate
+python -m pip install -e '.[dev,web]'
+make lint
+make test
 ```
 
-### Run as Proxy Server
+Set provider credentials through a protected environment or a protected key file. Do not put real credentials in shell history, source control, PR text, test fixtures, or build artifacts.
+
+## Container images
+
+Two images are supported:
+
+- `Dockerfile`: OpenAI-compatible HTTP proxy, bound to `0.0.0.0:8000` inside the container. A router bearer token is mandatory.
+- `Dockerfile.web`: Flask/Gunicorn dashboard and OpenAI-compatible API.
+
+Both images:
+- run as a non-root user with a writable home directory;
+- include all extracted router modules and runtime dependencies;
+- use `/livez` for Docker liveness checks;
+- persist bot metadata and router statistics under named volumes when using Compose;
+- do not copy `provider.json` or credentials into the image.
+
+### Docker Compose (recommended web deployment)
+
+Create local secret files. Keep the directory outside source control; `secrets/` is gitignored.
 
 ```bash
-# Start the OpenAI-compatible proxy
-python zrouter.py serve --port 8000 --token secret
+install -d -m 0700 secrets
+umask 077
+printf '%s' "$NVIDIA_API_KEYS" > secrets/nvidia_api_keys.txt
+printf '%s' "$ROUTER_TOKEN" > secrets/router_token.txt
+chmod 0400 secrets/nvidia_api_keys.txt secrets/router_token.txt
+sudo chown 10001:10001 secrets/nvidia_api_keys.txt secrets/router_token.txt
+unset NVIDIA_API_KEYS ROUTER_TOKEN
 
-# Test with curl
-curl http://localhost:8000/health
-
-# Use with OpenAI client
-export OPENAI_BASE_URL=http://localhost:8000/v1
-export OPENAI_API_KEY=secret
+docker compose -f docker-compose.web.yml config --quiet
+docker compose -f docker-compose.web.yml up -d --build
+docker compose -f docker-compose.web.yml ps
 ```
 
-## Web Dashboard Deployment
+The image runs as fixed non-root UID/GID `10001:10001`. For local file-backed Compose secrets, the files must be readable by that container identity; the commands above assign ownership to UID/GID 10001 and mode 0400. Docker Compose's local file-backed secrets do not remap file ownership/mode on every platform, so verify this on the target Docker engine.
 
-The web dashboard is a Flask app with Gunicorn, providing a browser-based UI and OpenAI-compatible API.
+The Compose file mounts these files as Docker secrets:
+- `/run/secrets/nvidia_api_keys`, read through `NVIDIA_KEYS_FILE`;
+- `/run/secrets/router_token`, read through `ROUTER_TOKEN_FILE`.
 
-### Quick Deploy (Recommended)
+The host port is bound to `127.0.0.1` by default. Put a separately reviewed TLS reverse proxy in front of it if remote access is required. Do not change the bind address to a public interface without a reviewed network/authentication configuration.
+
+Persistent volumes:
+- `zrouter_bot_data`: bot metadata and non-secret local memory.
+- `zrouter_stats`: router statistics.
+
+The default container does **not** mount Linux SecretService, macOS Keychain, or Windows Credential Locker. Vault secret operations intentionally fail closed inside these images. Do not assume that mounting the bot data volume enables native keyring support.
+
+### Runtime smoke checks
 
 ```bash
-# Build and start in one command
-export NVIDIA_API_KEYS="nvapi-xxx,nvapi-yyy"
-make build:deploy
+curl --fail http://127.0.0.1:8000/livez
+curl --fail -H "Authorization: Bearer $ROUTER_TOKEN" http://127.0.0.1:8000/health
 ```
 
-### Manual Steps
+`/livez` returns only process liveness and is intentionally unauthenticated. `/health`, `/stats`, `/v1/models`, and inference endpoints remain protected by the configured bearer token.
 
-```bash
-# Build the web package
-make build:web
+## Native OS keyring validation
 
-# Start the server
-make build:web:start
+The CI workflow `.github/workflows/runtime-validation.yml` runs a real secret-store round-trip on:
+- Linux with D-Bus + GNOME Keyring SecretService;
+- macOS Keychain;
+- Windows Credential Locker.
 
-# Or with debug mode
-WEB_DEBUG=1 make build:web:start
+These tests write only synthetic, uniquely named test secrets and delete them after the test. CI evidence must be checked for the exact PR head SHA. A passing CI matrix does not prove that the production host has an unlocked/configured credential store.
+
+## NVIDIA NIM live smoke test
+
+The optional `.github/workflows/nvidia-nim-smoke.yml` workflow is manual-only. It requires:
+- repository secret `NVIDIA_NIM_API_KEY`;
+- an explicitly curated NVIDIA model marked free in `models.json`;
+- the exact typed confirmation `RUN_ONE_NVIDIA_NIM_REQUEST`.
+
+It sends one synthetic, non-sensitive prompt to the official HTTPS NVIDIA NIM endpoint, with no retries and a bounded timeout. It does not print the key or response body. Provider pricing/quotas can change; a catalog `free: true` flag is not a billing guarantee. Verify current account terms before triggering the workflow. No live provider call has been made by this PR unless a workflow run is explicitly shown in Actions.
+
+## Legacy vault migration
+
+The vault migration is a data-format change and is **not backward-compatible** with the earlier plaintext vault implementation.
+
+Preconditions:
+1. Identify the exact host/user that owns the legacy vault.
+2. Stop all zrouter/bot processes that can write the vault.
+3. Create and verify an encrypted, access-restricted backup using the environment's approved backup mechanism. Never put the plaintext backup in Git, CI artifacts, or issue/PR comments.
+4. Configure and unlock the host-native credential store. Confirm that `KeyringVaultBackend` selects SecretService, macOS Keychain, or Windows Credential Locker.
+5. Verify the running process identity can access the selected store.
+
+Run migration locally on the target host, not in the default Docker image:
+
+```python
+from pathlib import Path
+from zrouter_bot_storage import Vault
+
+vault_path = Path.home() / ".zrouter_bot" / "vault.json"
+migrated_count = Vault.migrate_legacy(vault_path, confirm=True)
+vault = Vault(vault_path)
+assert len(vault.list()) == migrated_count
+print(f"Verified {migrated_count} migrated vault entries")
 ```
 
-The dashboard is available at `http://localhost:8000`.
+The migration stores secret values in the native keyring and replaces the JSON file with a metadata-only index. It attempts to remove newly written keyring entries if migration fails, but a process crash can leave orphaned keyring items. Migration cannot securely erase historical filesystem blocks, snapshots, or backups. Keep the encrypted backup until a restore test and operational acceptance have passed.
 
-### Web Make Targets
+## Rollback and recovery
 
-| Target | Description |
-|--------|-------------|
-| `make build:web` | Build web deployment package |
-| `make build:web:all` | Build all web variants (dev + prod + ent) |
-| `make build:web:dev` | Build web dev package (hot-reload, debug) |
-| `make build:web:prod` | Build web production package (gunicorn) |
-| `make build:web:ent` | Build web enterprise package (all features) |
-| `make build:web:start` | Start web server from dist/web/ |
-| `make build:deploy` | Build web package + start server |
+- **Before vault migration:** stop the service, restore the protected pre-change data backup, and restore the previously deployed application artifact/configuration.
+- **After vault migration:** do not blindly roll back to a pre-keyring release. That release expects plaintext values and cannot read the metadata-only keyring index. There is no automatic downgrade or plaintext export path. Prefer forward-fix/restore of the keyring-backed release.
+- A downgrade that recreates the old plaintext format requires a separately approved, offline recovery procedure with explicit acceptance of the at-rest plaintext risk. Do not improvise this on a live host.
+- If the native keyring is unavailable, do not create a plaintext fallback. Restore the keyring service/host backup or recover forward.
+- Preserve the encrypted pre-migration backup and validate the restore before deleting any retained copy.
 
-## Docker Deployment
+## Production acceptance checklist
 
-### Build Image
+Do not mark a target environment ready until the operator verifies:
 
-```bash
-docker build -t zrouter:latest .
-```
+- [ ] Target host, OS/version, service identity, deployment owner, and deployed commit are recorded.
+- [ ] Docker/Compose or native runtime version and image digests are recorded.
+- [ ] Required secret files/secret-store entries exist, are readable only by the intended principal, and are not exposed through process arguments or logs.
+- [ ] Router bearer authentication and external TLS/reverse-proxy path are verified.
+- [ ] Native keyring integration is verified on the actual host if vault operations are required.
+- [ ] Persistent data volumes, backup encryption, retention, restore, and migration rollback are tested.
+- [ ] Liveness, authenticated health, streaming disconnect, and bounded-load checks pass.
+- [ ] Provider/model allowlist and current NVIDIA NIM pricing/quotas are verified by the operator.
+- [ ] Monitoring, resource limits, restart behavior, incident escalation, and recovery ownership are defined.
 
-### Run Container
-
-```bash
-docker run -d \
-  --name zrouter \
-  -p 8000:8000 \
-  -e NVIDIA_API_KEYS="nvapi-xxx,nvapi-yyy" \
-  -e NVIDIA_RPM=35 \
-  -e NVIDIA_CACHE_TTL=3600 \
-  zrouter:latest
-```
-
-### Using Make
-
-```bash
-make docker:build
-make docker:run
-```
-
-### Web Docker Deployment
-
-```bash
-cd dist/web
-docker build -f Dockerfile.web -t zrouter-web:latest .
-
-docker run -d \
-  --name zrouter-web \
-  -p 8000:8000 \
-  -e NVIDIA_API_KEYS="nvapi-xxx,nvapi-yyy" \
-  -e ROUTER_TOKEN=changeme \
-  zrouter-web:latest
-```
-
-### Docker Compose
-
-```bash
-cd dist/web
-cp .env.web.example .env
-# edit .env with your keys
-docker-compose -f docker-compose.web.yml up -d
-```
-
-## systemd Service (Linux)
-
-Create `/etc/systemd/system/zrouter.service`:
-
-```ini
-[Unit]
-Description=NVIDIA Free-Model Router
-After=network.target
-
-[Service]
-Type=simple
-User=zrouter
-WorkingDirectory=/opt/zrouter/dist/web
-Environment=NVIDIA_API_KEYS=nvapi-xxx,nvapi-yyy
-Environment=NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
-Environment=NVIDIA_RPM=35
-ExecStart=/opt/zrouter/.venv/bin/python -m gunicorn -c gunicorn.conf.py web_app:app
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable zrouter
-sudo systemctl start zrouter
-```
-
-## Docker Compose (Create `docker-compose.yml`)
-
-```yaml
-version: "3.8"
-
-services:
-  zrouter:
-    build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - NVIDIA_API_KEYS=${NVIDIA_API_KEYS}
-      - NVIDIA_RPM=35
-      - NVIDIA_CACHE_TTL=3600
-    restart: unless-stopped
-```
-
-```bash
-docker-compose up -d
-```
-
-## Reverse Proxy (Nginx)
-
-Example Nginx config for TLS termination:
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name router.example.com;
-
-    ssl_certificate /path/to/cert.pem;
-    ssl_certificate_key /path/to/key.pem;
-
-    location /v1/ {
-        proxy_pass http://127.0.0.1:8000/v1/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_read_timeout 300s;
-    }
-
-    location /health {
-        proxy_pass http://127.0.0.1:8000/health;
-    }
-}
-```
-
-## Production Checklist
-
-- [ ] Set `NVIDIA_API_KEYS` with valid keys
-- [ ] Set `ROUTER_TOKEN` for proxy authentication
-- [ ] Configure `NVIDIA_RPM` appropriately for your key tier
-- [ ] Use HTTPS/TLS in production (terminate at reverse proxy)
-- [ ] Set up monitoring and logging
-- [ ] Configure `NVIDIA_CACHE_TTL` for caching behavior
-- [ ] Enable `stats` persistence for usage tracking
-- [ ] Use Gunicorn (not Flask dev server) in production
-
-## Environment Variable Reference
-
-| Variable | Default | Required | Description |
-|----------|---------|----------|-------------|
-| `NVIDIA_API_KEYS` | — | Yes | Comma-separated NVIDIA API keys |
-| `NVIDIA_BASE_URL` | `https://integrate.api.nvidia.com/v1` | No | NVIDIA NIM API base URL |
-| `NVIDIA_RPM` | 35 | No | Per-key requests per minute |
-| `NVIDIA_CACHE_TTL` | 3600 | No | Cache TTL seconds (0 = off) |
-| `NVIDIA_TIMEOUT` | 90 | No | Request timeout seconds |
-| `NVIDIA_MAX_WAIT` | 60 | No | Max wait when all keys limited |
-| `NVIDIA_ROUTER_CONFIG` | — | No | Path to router.json config |
-| `NVIDIA_ROUTER_HOME` | `~/.nvidia_free_router` | No | Stats directory |
-| `ROUTER_TOKEN` | — | No | Bearer token for proxy auth |
-| `WEB_HOST` | `0.0.0.0` | No | Web bind host |
-| `WEB_PORT` | 8000 | No | Web bind port |
-| `WEB_DEBUG` | 0 | No | Flask debug mode |
-| `WEB_WORKERS` | 4 | No | Gunicorn workers |
-| `WEB_THREADS` | 8 | No | Gunicorn threads per worker |
-| `WEB_LOG_LEVEL` | info | No | Log level |
+No deployment, migration, credential rotation, or production mutation is authorized or performed by this PR.

@@ -33,3 +33,6 @@ zrouter_1.0.0_amd64.deb
 ico.zip
 package.json
 package-lock.json
+
+# Local secret files must never enter the Docker build context
+secrets/

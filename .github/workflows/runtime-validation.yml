@@ -1,0 +1,172 @@
+name: Runtime Validation
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  docker-smoke:
+    name: Docker build and runtime smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Compose configuration
+        run: |
+          mkdir -p secrets
+          printf '%s' 'synthetic-ci-key' > secrets/nvidia_api_keys.txt
+          printf '%s' 'synthetic-ci-token' > secrets/router_token.txt
+          chmod 0400 secrets/nvidia_api_keys.txt secrets/router_token.txt
+          sudo chown 10001:10001 secrets/nvidia_api_keys.txt secrets/router_token.txt
+          docker compose -f docker-compose.web.yml config --quiet
+
+      - name: Build router image
+        run: docker build --pull -f Dockerfile -t zrouter:ci .
+
+      - name: Run router container
+        run: |
+          docker run -d --name zrouter-ci \
+            -p 127.0.0.1:18080:8000 \
+            --mount type=bind,src="$PWD/secrets/nvidia_api_keys.txt",dst=/run/secrets/nvidia_api_keys,readonly \
+            --mount type=bind,src="$PWD/secrets/router_token.txt",dst=/run/secrets/router_token,readonly \
+            -e NVIDIA_KEYS_FILE=/run/secrets/nvidia_api_keys \
+            -e ROUTER_TOKEN_FILE=/run/secrets/router_token \
+            zrouter:ci
+
+      - name: Smoke test router container
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'docker logs zrouter-ci || true; docker rm -f zrouter-ci >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:18080/livez >/dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:18080/livez | python -c 'import json,sys; assert json.load(sys.stdin)["ok"] is True'
+          status=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/health)
+          test "$status" = "401"
+          curl -fsS -H 'Authorization: Bearer synthetic-ci-token' http://127.0.0.1:18080/health | python -c 'import json,sys; data=json.load(sys.stdin); assert data["ok"] is True and len(data["keys"]) == 1'
+          for attempt in $(seq 1 40); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' zrouter-ci)
+            if [ "$status" = "healthy" ]; then break; fi
+            sleep 2
+          done
+          test "$(docker inspect --format '{{.State.Health.Status}}' zrouter-ci)" = "healthy"
+
+      - name: Build web image
+        run: docker build --pull -f Dockerfile.web -t zrouter-web:ci .
+
+      - name: Run web container
+        run: |
+          docker run -d --name zrouter-web-ci \
+            -p 127.0.0.1:18081:8000 \
+            --mount type=bind,src="$PWD/secrets/nvidia_api_keys.txt",dst=/run/secrets/nvidia_api_keys,readonly \
+            --mount type=bind,src="$PWD/secrets/router_token.txt",dst=/run/secrets/router_token,readonly \
+            -e NVIDIA_KEYS_FILE=/run/secrets/nvidia_api_keys \
+            -e ROUTER_TOKEN_FILE=/run/secrets/router_token \
+            zrouter-web:ci
+
+      - name: Smoke test web container
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'docker logs zrouter-web-ci || true; docker rm -f zrouter-web-ci >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:18081/livez >/dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:18081/livez | python -c 'import json,sys; assert json.load(sys.stdin)["ok"] is True'
+          status=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18081/health)
+          test "$status" = "401"
+          curl -fsS -H 'Authorization: Bearer synthetic-ci-token' http://127.0.0.1:18081/health | python -c 'import json,sys; data=json.load(sys.stdin); assert data["ok"] is True and len(data["keys"]) == 1'
+          for attempt in $(seq 1 40); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' zrouter-web-ci)
+            if [ "$status" = "healthy" ]; then break; fi
+            sleep 2
+          done
+          test "$(docker inspect --format '{{.State.Health.Status}}' zrouter-web-ci)" = "healthy"
+
+      - name: Remove synthetic secret files
+        if: always()
+        run: rm -rf secrets
+
+  native-keyring:
+    name: Native keyring (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install native keyring test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-runtime.txt pytest
+
+      - name: Install Linux SecretService
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends dbus-x11 gnome-keyring
+
+      - name: Run Linux SecretService integration
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          dbus-run-session -- bash -euo pipefail -c '
+            export XDG_RUNTIME_DIR="$(mktemp -d)"
+            chmod 0700 "$XDG_RUNTIME_DIR"
+            export GNOME_KEYRING_CONTROL="$XDG_RUNTIME_DIR/keyring"
+            mkdir -p "$GNOME_KEYRING_CONTROL"
+            eval "$(printf "%s" "zrouter-ci-keyring-password" | gnome-keyring-daemon --daemonize --replace --unlock --components=secrets)"
+            export PYTHON_KEYRING_BACKEND=keyring.backends.SecretService.Keyring
+            export ZROUTER_NATIVE_KEYRING=1
+            python -m pytest -q tests/test_native_keyring.py
+          '
+
+      - name: Prepare macOS Keychain
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          KEYCHAIN_PASSWORD="$(python -c 'import secrets; print(secrets.token_hex(24))')"
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
+          KEYCHAIN_PATH="$HOME/Library/Keychains/zrouter-ci.keychain-db"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+
+      - name: Run macOS Keychain integration
+        if: runner.os == 'macOS'
+        env:
+          ZROUTER_NATIVE_KEYRING: "1"
+          PYTHON_KEYRING_BACKEND: keyring.backends.macOS.Keyring
+        run: python -m pytest -q tests/test_native_keyring.py
+
+      - name: Delete temporary macOS Keychain
+        if: always() && runner.os == 'macOS'
+        run: security delete-keychain "$HOME/Library/Keychains/zrouter-ci.keychain-db" || true
+
+      - name: Run Windows Credential Locker integration
+        if: runner.os == 'Windows'
+        env:
+          ZROUTER_NATIVE_KEYRING: "1"
+        run: python -m pytest -q tests/test_native_keyring.py
+
+
