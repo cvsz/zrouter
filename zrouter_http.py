@@ -83,6 +83,8 @@ def make_handler(router: Any, token: str | None, routes: dict[str, list[str]]):
             return True
 
         def do_GET(self) -> None:
+            if self.path == "/livez":
+                return self._json(200, {"ok": True})
             if not self._authed():
                 return
             if self.path == "/health":
@@ -145,7 +147,8 @@ def make_handler(router: Any, token: str | None, routes: dict[str, list[str]]):
                                 if line:
                                     self.wfile.write(line + b"\n\n")
                                     self.wfile.flush()
-                        except (BrokenPipeError, ConnectionResetError):
+                        except OSError:
+                            # A disconnected client must not keep the upstream stream alive.
                             pass
                         finally:
                             resp.close()
