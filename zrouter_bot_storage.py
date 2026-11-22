@@ -90,6 +90,26 @@ def _validate_entry_id(entry_id: str) -> str:
     return entry_id
 
 
+
+def _decode_secret(value: str) -> dict[str, Any]:
+    try:
+        decoded = json.loads(value)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("vault secret payload is invalid JSON") from exc
+    if not isinstance(decoded, dict):
+        raise RuntimeError("vault secret payload must be a JSON object")
+    return decoded
+
+
+def _encode_secret(value: dict[str, Any]) -> str:
+    if not isinstance(value, dict):
+        raise ValueError("vault secret value must be a JSON object")
+    try:
+        return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("vault secret value must be JSON-serializable") from exc
+
+
 class Vault:
     """Credential metadata on disk; values live only in the native OS keyring."""
 
@@ -219,12 +239,12 @@ class Vault:
             value = self._get_backend().get(entry_id)
             if value is None:
                 raise RuntimeError(f"vault secret is missing for entry {entry_id!r}")
-            return VaultEntry.from_dict({**entry.to_dict(), "value": json.loads(value)})
+            return VaultEntry.from_dict({**entry.to_dict(), "value": _decode_secret(value)})
 
     def add(self, entry: VaultEntry) -> VaultEntry:
         self._ensure_not_legacy()
         _validate_entry_id(entry.id)
-        encoded = json.dumps(entry.value, separators=(",", ":"), ensure_ascii=False)
+        encoded = _encode_secret(entry.value)
         with self._lock:
             backend = self._get_backend()
             previous = backend.get(entry.id)
@@ -259,7 +279,7 @@ class Vault:
                 raise RuntimeError(f"vault secret is missing for entry {entry_id!r}")
             backend.set(
                 entry_id,
-                json.dumps(value, separators=(",", ":"), ensure_ascii=False),
+                _encode_secret(value),
             )
             updated = VaultEntry.from_dict(
                 {**entry.to_dict(), "value": {}, "updated_at": time.time()}
@@ -324,9 +344,7 @@ class Vault:
             for entry in entries:
                 store.set(
                     entry.id,
-                    json.dumps(
-                        entry.value, separators=(",", ":"), ensure_ascii=False
-                    ),
+                    _encode_secret(entry.value),
                 )
                 written.append(entry.id)
             metadata = object.__new__(cls)
