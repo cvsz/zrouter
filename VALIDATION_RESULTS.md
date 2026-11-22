@@ -31,7 +31,7 @@ Evidence for the refactor implementation is tied to the exact tested code commit
 
 ## Security limitations
 
-- The bot vault remains plaintext JSON. POSIX permissions are restricted to directory `0700` and file `0600`; this does not provide encryption or protect against the same OS user, root, or compromised processes.
+- The initial Phase 2 implementation used plaintext JSON with restrictive POSIX permissions. Phase 3 replaces active vault storage with a native OS keyring; legacy files require explicit migration and historical filesystem blocks/backups are not guaranteed to be securely erased.
 - Model discovery does not prove pricing. New models remain `free=false` and `pricing_status=unverified` until explicitly curated.
 - Remote plaintext HTTP provider endpoints are rejected; only loopback HTTP is allowed.
 
@@ -51,3 +51,13 @@ Evidence for the refactor implementation is tied to the exact tested code commit
 ## Evidence policy
 
 The automated results above apply to the validated code commit listed above. Any later code change requires a new validation run. Documentation-only updates do not change the tested runtime code.
+
+## Phase 3 — HTTP boundary extraction and vault hardening
+
+- Extract HTTP parsing, bearer authentication, SSE response ownership, and server lifecycle into `zrouter_http.py`; retain `zrouter.py` compatibility wrappers.
+- Move `RouterError` and the 16 MiB request cap into `zrouter_contracts.py`.
+- Replace plaintext vault values with native OS keyring storage. The JSON index stores metadata only.
+- Reject unsupported/insecure keyring implementations and fail closed when no native credential store is available.
+- Detect legacy plaintext vaults; migration requires an explicit `confirm=True` call and does not claim secure erasure of historical filesystem blocks or backups.
+- Add keyring dependency and update packaging/container source manifests.
+- Validation status: pending CI for the exact implementation commit. Docker, desktop OS keyring behavior, and live NVIDIA NIM remain unverified until exercised in target environments.
