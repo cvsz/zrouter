@@ -16,9 +16,6 @@ import requests
 
 from zrouter_config import (
     CFG,
-    DEFAULT_COOLDOWN_429,
-    DEFAULT_COOLDOWN_ERR,
-    DEFAULT_MAX_WAIT,
     MODEL_LIST_TTL,
     PAIR_BACKOFF_CAP,
     RETRY_AFTER_CAP,
