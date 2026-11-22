@@ -43,6 +43,7 @@ if _HERE not in sys.path:
 
 # Import the core router (functions/classes defined in zrouter.py)
 from zrouter import CFG, FreeRouter, RouterError
+from zrouter_config import read_secret_file
 
 logging.basicConfig(
     level=logging.INFO,
@@ -80,7 +81,9 @@ def _get_router() -> FreeRouter:
 # --------------------------------------------------------------------------- #
 # Auth
 # --------------------------------------------------------------------------- #
-_token: str | None = os.environ.get("ROUTER_TOKEN")
+_token: str | None = os.environ.get("ROUTER_TOKEN") or read_secret_file(
+    os.environ.get("ROUTER_TOKEN_FILE")
+)
 
 
 def _authed() -> bool:
