@@ -28,7 +28,7 @@ from zrouter_bot import (
 )
 from zrouter_bot_models import VaultEntry
 from zrouter_catalog import CATALOG
-from zrouter_config import CFG, PROVIDERS
+from zrouter_config import CFG, PROVIDERS, read_secret_file
 from zrouter_contracts import RouterError
 from zrouter_http import serve as _serve_http
 from zrouter_runtime import Stats
@@ -256,7 +256,9 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--port", type=int, default=8000, help="default 8000")
     s.add_argument(
         "--token",
-        default=os.environ.get("ROUTER_TOKEN"),
+        default=os.environ.get("ROUTER_TOKEN") or read_secret_file(
+            os.environ.get("ROUTER_TOKEN_FILE")
+        ),
         help="require 'Authorization: Bearer TOKEN' (or ROUTER_TOKEN); "
         "strongly advised if host is not 127.0.0.1",
     )
