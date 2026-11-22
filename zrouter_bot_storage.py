@@ -99,6 +99,7 @@ class Vault:
         self.path = Path(path)
         self._backend = backend
         self._entries: dict[str, VaultEntry] = {}
+        self._legacy_detected = False
         self._lock = threading.RLock()
         self._load()
 
@@ -133,10 +134,9 @@ class Vault:
                     raise TypeError("vault index entries must be objects")
                 value = raw.get("value", {})
                 if value:
-                    raise RuntimeError(
-                        "legacy plaintext vault detected; use the explicit "
-                        "Vault.migrate_legacy(..., confirm=True) migration"
-                    )
+                    self._legacy_detected = True
+                    self._entries = {}
+                    return
                 metadata = {**raw, "value": {}}
                 entry = VaultEntry.from_dict(metadata)
                 _validate_entry_id(entry.id)
@@ -186,7 +186,15 @@ class Vault:
                 pass
             raise
 
+    def _ensure_not_legacy(self) -> None:
+        if self._legacy_detected:
+            raise RuntimeError(
+                "legacy plaintext vault detected; use the explicit "
+                "Vault.migrate_legacy(..., confirm=True) migration"
+            )
+
     def list(self) -> list[VaultEntry]:
+        self._ensure_not_legacy()
         with self._lock:
             backend = self._get_backend() if self._entries else self._backend
             result: list[VaultEntry] = []
@@ -202,6 +210,7 @@ class Vault:
             return result
 
     def get(self, entry_id: str) -> VaultEntry | None:
+        self._ensure_not_legacy()
         entry_id = _validate_entry_id(entry_id)
         with self._lock:
             entry = self._entries.get(entry_id)
@@ -213,6 +222,7 @@ class Vault:
             return VaultEntry.from_dict({**entry.to_dict(), "value": json.loads(value)})
 
     def add(self, entry: VaultEntry) -> VaultEntry:
+        self._ensure_not_legacy()
         _validate_entry_id(entry.id)
         encoded = json.dumps(entry.value, separators=(",", ":"), ensure_ascii=False)
         with self._lock:
@@ -237,6 +247,7 @@ class Vault:
             return entry
 
     def update(self, entry_id: str, value: dict[str, Any]) -> VaultEntry | None:
+        self._ensure_not_legacy()
         entry_id = _validate_entry_id(entry_id)
         with self._lock:
             entry = self._entries.get(entry_id)
@@ -263,6 +274,7 @@ class Vault:
             return VaultEntry.from_dict({**updated.to_dict(), "value": value})
 
     def delete(self, entry_id: str) -> bool:
+        self._ensure_not_legacy()
         entry_id = _validate_entry_id(entry_id)
         with self._lock:
             entry = self._entries.get(entry_id)
