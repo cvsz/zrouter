@@ -82,19 +82,22 @@ from zrouter_bot import (
     VaultEntry,
     get_bot,
 )
+from zrouter_contracts import MAX_REQUEST_BYTES as _MAX_REQUEST_BYTES, RouterError
 from zrouter_core import ProviderRegistry, validate_base_url
+from zrouter_http import (
+    _read_body as _http_read_body,
+    make_handler as _make_http_handler,
+    serve as _serve_http,
+)
 from zrouter_runtime import (
     RateLimiter,
     Stats,
     TTLCache,
     mask,
 )
-from zrouter_contracts import MAX_REQUEST_BYTES as MAX_REQUEST_BYTES, RouterError
-from zrouter_http import (
-    _read_body as _read_body,
-    make_handler as _make_http_handler,
-    serve as _serve_http,
-)
+
+MAX_REQUEST_BYTES = _MAX_REQUEST_BYTES
+_read_body = _http_read_body
 
 log = logging.getLogger("nvrouter")
 
