@@ -93,6 +93,10 @@ jobs:
           done
           test "$(docker inspect --format '{{.State.Health.Status}}' zrouter-web-ci)" = "healthy"
 
+      - name: Remove synthetic secret files
+        if: always()
+        run: rm -rf secrets
+
   native-keyring:
     name: Native keyring (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -124,8 +128,11 @@ jobs:
         shell: bash
         run: |
           dbus-run-session -- bash -euo pipefail -c '
-            eval "$(gnome-keyring-daemon --start --components=secrets)"
-            printf "\n" | gnome-keyring-daemon --unlock --components=secrets >/dev/null
+            export XDG_RUNTIME_DIR="$(mktemp -d)"
+            chmod 0700 "$XDG_RUNTIME_DIR"
+            export GNOME_KEYRING_CONTROL="$XDG_RUNTIME_DIR/keyring"
+            mkdir -p "$GNOME_KEYRING_CONTROL"
+            eval "$(printf "%s" "zrouter-ci-keyring-password" | gnome-keyring-daemon --daemonize --replace --unlock --components=secrets)"
             export PYTHON_KEYRING_BACKEND=keyring.backends.SecretService.Keyring
             export ZROUTER_NATIVE_KEYRING=1
             python -m pytest -q tests/test_native_keyring.py
@@ -163,6 +170,3 @@ jobs:
         run: python -m pytest -q tests/test_native_keyring.py
 
 
-      - name: Remove synthetic secret files
-        if: always()
-        run: rm -rf secrets
