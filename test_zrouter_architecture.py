@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
 
 import zrouter
 import zrouter_application
 import zrouter_catalog
 import zrouter_cli
 import zrouter_config
+from zrouter_config import read_secret_file
 
 
 class TestArchitectureCompatibility(unittest.TestCase):
@@ -27,6 +30,19 @@ class TestArchitectureCompatibility(unittest.TestCase):
     def test_cli_facade_identity(self) -> None:
         self.assertIs(zrouter.main, zrouter_cli.main)
         self.assertIs(zrouter.build_parser, zrouter_cli.build_parser)
+
+    def test_secret_file_reader_is_bounded_and_rejects_symlinks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            secret_path = Path(directory) / "router-token"
+            secret_path.write_text("synthetic-token\\n", encoding="utf-8")
+            self.assertEqual(read_secret_file(str(secret_path)), "synthetic-token")
+            with self.assertRaisesRegex(ValueError, "size limit"):
+                read_secret_file(str(secret_path), max_bytes=4)
+            if hasattr(Path, "symlink_to"):
+                link_path = Path(directory) / "router-token-link"
+                link_path.symlink_to(secret_path)
+                with self.assertRaisesRegex(ValueError, "symlinked"):
+                    read_secret_file(str(link_path))
 
     def test_cli_parser_preserves_existing_commands(self) -> None:
         parser = zrouter.build_parser()
