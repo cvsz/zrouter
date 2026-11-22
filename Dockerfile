@@ -37,7 +37,9 @@ COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser -s /bin/false appuser
+RUN groupadd -r appuser && \
+    useradd -r -m -d /home/appuser -g appuser -s /bin/false appuser && \
+    install -d -o appuser -g appuser -m 0700 /home/appuser/.zrouter_bot /home/appuser/.nvidia_free_router
 
 # Copy application files (NOT provider.json — keys must come from env)
 COPY --chown=appuser:appuser zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json ./
@@ -55,11 +57,14 @@ ENV NVIDIA_RPM=35
 ENV NVIDIA_CACHE_TTL=3600
 ENV NVIDIA_TIMEOUT=90
 ENV NVIDIA_MAX_WAIT=60
+ENV NVIDIA_ROUTER_HOME=/home/appuser/.nvidia_free_router
 
 # Expose port for the OpenAI-compatible proxy
 EXPOSE 8000
 
-# Health check (requires ROUTER_TOKEN; /health is authenticated)
+VOLUME ["/home/appuser/.zrouter_bot", "/home/appuser/.nvidia_free_router"]
+
+# Liveness check is intentionally independent of authentication and exposes no metadata.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -fsS http://127.0.0.1:8000/livez || exit 1
 
