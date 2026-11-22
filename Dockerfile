@@ -37,8 +37,8 @@ COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Create non-root user
-RUN groupadd -r appuser && \
-    useradd -r -m -d /home/appuser -g appuser -s /bin/false appuser && \
+RUN groupadd -g 10001 -r appuser && \
+    useradd -u 10001 -r -m -d /home/appuser -g appuser -s /bin/false appuser && \
     install -d -o appuser -g appuser -m 0700 /home/appuser/.zrouter_bot /home/appuser/.nvidia_free_router
 
 # Copy application files (NOT provider.json — keys must come from env)
