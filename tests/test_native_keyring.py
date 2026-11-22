@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import os
 import tempfile
-import uuid
 import unittest
+import uuid
 from pathlib import Path
 
 from zrouter_bot import Vault, VaultEntry
