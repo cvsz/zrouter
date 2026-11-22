@@ -3,12 +3,12 @@ from __future__ import annotations
 import json
 import os
 import stat
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
-import sys
 
 from zrouter_bot import Vault, VaultEntry
 from zrouter_bot_storage import KeyringVaultBackend
@@ -91,11 +91,13 @@ class TestVaultStorage(unittest.TestCase):
             get_keyring=lambda: InsecureBackend(),
             errors=SimpleNamespace(PasswordDeleteError=Exception),
         )
-        with mock.patch.dict(sys.modules, {"keyring": fake_keyring}):
-            with self.assertRaisesRegex(
+        with (
+            mock.patch.dict(sys.modules, {"keyring": fake_keyring}),
+            self.assertRaisesRegex(
                 RuntimeError, "Plaintext fallback is intentionally disabled"
-            ):
-                KeyringVaultBackend()
+            ),
+        ):
+            KeyringVaultBackend()
 
     def test_missing_keyring_secret_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -123,7 +125,7 @@ class TestVaultStorage(unittest.TestCase):
             )
             backend = InMemoryKeyring()
             backend.set("bad-1", "[]")
-            with self.assertRaisesRegex(RuntimeError, "must be a JSON object"):
+            with self.assertRaisesRegex(TypeError, "must be a JSON object"):
                 Vault(path, backend=backend).list()
 
     def test_corrupt_vault_fails_closed(self):
