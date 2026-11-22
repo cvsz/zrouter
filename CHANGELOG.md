@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- Replace plaintext bot-vault persistence with native OS credential-store integration; reject unsupported/insecure backends and disable plaintext fallback.
+- Detect legacy plaintext vault files and require explicit migration; keep credential values out of the on-disk JSON index.
+- Add an HTTP adapter module and shared router error/request-size contracts while retaining the existing zrouter.py compatibility surface.
+
+
+### Security
 - Fail closed when live model discovery cannot match an explicitly configured route allowlist; no fallback to arbitrary live models.
 - Do not infer a model's free/paid status from its name or route classification.
 - Require exact model IDs or explicit glob patterns for route matching.
