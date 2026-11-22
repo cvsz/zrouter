@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Extract router settings/provider configuration and API-key loading into `zrouter_config.py`, curated model catalog into `zrouter_catalog.py`, inference/routing application into `zrouter_application.py`, and CLI dispatch into `zrouter_cli.py`; retain the legacy `zrouter.py` facade and public import identities.
+- Add authenticated HTTP stream-disconnect and bounded concurrent-load regression tests.
+- Add public, metadata-free `/livez` probes while keeping `/health` and operational endpoints bearer-authenticated.
+- Add Docker runtime/web image build and smoke-test workflows, including synthetic-key container checks and Compose configuration validation.
+- Add native OS keyring integration workflow for Linux SecretService, macOS Keychain, and Windows Credential Locker.
+- Add a manual, one-request NVIDIA NIM smoke workflow gated by explicit typed authorization and the `NVIDIA_NIM_API_KEY` repository secret.
+
+### Security
+- Support bounded, regular-file-only, no-symlink reads for `ROUTER_TOKEN_FILE`; inject Docker Compose API keys and router tokens through mounted secrets instead of container environment values.
+- Bind Docker Compose host ports to loopback by default and persist bot metadata/statistics in named volumes.
+- Provision a writable, non-root application home in both container images.
+- Keep the containerized vault fail-closed: Docker images do not mount a host native credential store, so vault secret CRUD is not available inside the default containers.
+
+### Changed
+- Split production runtime and web dependency manifests; ensure Flask/Gunicorn are installed in the web image.
+- Add the extracted modules to setuptools, Docker images, Makefile lint, and build/source bundles.
+- Change Docker health checks to use `/livez`, which does not disclose key status or require credentials.
+
+### Operational
+- Add an explicit migration and rollback runbook. Legacy vault migration is not backward-compatible with the prior plaintext implementation; rollback after migration requires a separately approved recovery procedure.
+- Add an optional manual NVIDIA NIM smoke script with no retries, a fixed official NVIDIA endpoint, a curated model allowlist, and a synthetic prompt.
+
 ### Security
 - Fail closed when live model discovery cannot match an explicitly configured route allowlist; no fallback to arbitrary live models.
 - Do not infer a model's free/paid status from its name or route classification.
