@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import tempfile
 import uuid
 import unittest
@@ -9,6 +10,10 @@ from zrouter_bot import Vault, VaultEntry
 from zrouter_bot_storage import KEYRING_SERVICE, KeyringVaultBackend
 
 
+@unittest.skipUnless(
+    os.environ.get("ZROUTER_NATIVE_KEYRING") == "1",
+    "native OS keyring integration runs only in the dedicated platform matrix",
+)
 class TestNativeKeyringIntegration(unittest.TestCase):
     def test_native_os_credential_store_round_trip(self) -> None:
         backend = KeyringVaultBackend()
