@@ -195,7 +195,7 @@ Development dependencies:
 pip install -e '.[dev]'
 ```
 
-Optional groups: `dev` (pytest, ruff, pyinstaller), `web` (flask, gunicorn), `secure-vault` (native OS keyring)
+Core runtime dependencies include `requests` and `keyring`; optional groups: `dev` (pytest, ruff, pyinstaller) and `web` (flask, gunicorn)
 
 ### Verification
 
