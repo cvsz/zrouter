@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: |
           .venv/bin/pip install --upgrade pip
-          .venv/bin/pip install requests pytest ruff pyinstaller
+          .venv/bin/pip install -r requirements-runtime.txt pytest ruff pyinstaller
 
       - name: Run lint checks
         run: make lint
