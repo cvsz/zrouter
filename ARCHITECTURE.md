@@ -41,15 +41,20 @@ CLI / GUI / TUI / Web Dashboard / OpenAI clients
 
 ## Current module boundaries
 
-- `zrouter.py`: compatibility facade, CLI, router application, and stable wrappers for HTTP adapter functions.
+- `zrouter.py`: backward-compatible public facade and executable entry point; it re-exports established names without owning application logic.
+- `zrouter_config.py`: validated runtime settings, provider configuration, API-key loading, and bounded no-follow secret-file reads.
+- `zrouter_catalog.py`: curated model metadata, free-tier curation, and live model discovery.
+- `zrouter_application.py`: `FreeRouter`, prompt classification, provider failover, routing policy, caching, and inference operations.
+- `zrouter_cli.py`: argument parser, help topics, command dispatch, and bot CLI commands.
 - `zrouter_contracts.py`: shared router error and maximum request-size contracts.
-- `zrouter_http.py`: HTTP request parsing, authentication boundary, handlers, streaming lifecycle, and server lifecycle.
+- `zrouter_http.py`: HTTP request parsing, bearer authentication, handlers, streaming lifecycle, and server lifecycle. `/livez` is a minimal unauthenticated liveness probe; operational endpoints remain authenticated.
 - `zrouter_core.py`: provider definitions, registry, and endpoint validation.
 - `zrouter_runtime.py`: thread-safe rate limiter, statistics persistence, TTL/LRU cache, and key masking primitives; `zrouter.py` re-exports the stable names.
 - `zrouter_bot_models.py`: bot enums and serializable domain models; this is the canonical definition module.
 - `zrouter_bot_storage.py`: local bot-home paths, native OS keyring-backed vault persistence, explicit legacy migration, and per-bot memory persistence.
 - `zrouter_bot.py`: bot services/managers and compatibility re-exports for model and storage types. Existing `from zrouter_bot import ...` imports remain supported.
-- `web_app.py`: Flask web adapter; delegates inference to `FreeRouter`.
+- `web_app.py`: Flask web adapter; delegates inference to `FreeRouter` and supports protected token-file injection.
+- `Dockerfile`, `Dockerfile.web`, and `docker-compose.web.yml`: non-root runtime images, read-only Docker secret injection, loopback-only host port publishing, and persistent metadata/statistics volumes.
 - `models.json`: curated model metadata. `free: true` is an explicit curation decision, not a value inferred from model names.
 
 ## Routing and cost invariants
