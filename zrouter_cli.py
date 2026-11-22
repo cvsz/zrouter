@@ -257,9 +257,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--port", type=int, default=8000, help="default 8000")
     s.add_argument(
         "--token",
-        default=os.environ.get("ROUTER_TOKEN") or read_secret_file(
-            os.environ.get("ROUTER_TOKEN_FILE")
-        ),
+        default=os.environ.get("ROUTER_TOKEN")
+        or read_secret_file(os.environ.get("ROUTER_TOKEN_FILE")),
         help="require 'Authorization: Bearer TOKEN' (or ROUTER_TOKEN); "
         "strongly advised if host is not 127.0.0.1",
     )
