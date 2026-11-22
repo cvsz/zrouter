@@ -144,6 +144,7 @@ class TestHttpAdapterIntegration(unittest.TestCase):
         self.assertEqual(response.headers["X-Router-Model"], "model-a")
 
     def test_stream_client_disconnect_closes_upstream_response(self):
+        original_stream = self.router.stream
         stream = SlowStream()
         self.router.stream = stream
         response = requests.post(
@@ -153,10 +154,14 @@ class TestHttpAdapterIntegration(unittest.TestCase):
             stream=True,
             timeout=3,
         )
-        iterator = response.iter_lines()
-        self.assertTrue(next(iterator).startswith(b"data: chunk-"))
-        response.close()
-        self.assertTrue(stream.closed.wait(timeout=3))
+        try:
+            iterator = response.iter_lines()
+            self.assertTrue(next(iterator).startswith(b"data: chunk-"))
+            response.close()
+            self.assertTrue(stream.closed.wait(timeout=3))
+        finally:
+            response.close()
+            self.router.stream = original_stream
 
     def test_health_endpoint_handles_bounded_concurrency(self):
         def check_health(_):
