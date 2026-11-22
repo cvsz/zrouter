@@ -108,6 +108,12 @@ def index() -> str:
     return render_template("index.html")
 
 
+@app.get("/livez")
+def livez() -> Any:
+    """Unauthenticated liveness probe; returns no operational or secret metadata."""
+    return jsonify({"ok": True})
+
+
 @app.get("/health")
 def health() -> Any:
     """Health endpoint – returns key status as JSON (authenticated)."""
