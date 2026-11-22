@@ -1200,7 +1200,6 @@ class FreeRouter:
 
 # --------------------------------------------------------------------------- proxy server
 
-
 # --------------------------------------------------------------------------- HTTP adapter
 
 def make_handler(router: FreeRouter, token: str | None):
