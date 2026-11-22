@@ -21,7 +21,7 @@ def load_allowed_model(model_id: str) -> None:
 
     models = catalog.get("models")
     if not isinstance(models, list):
-        raise RuntimeError("model catalog has an invalid schema")
+        raise TypeError("model catalog has an invalid schema")
     match = next(
         (
             model
