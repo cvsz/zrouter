@@ -59,8 +59,9 @@ class TestVaultStorage(unittest.TestCase):
                 value={"password": "old-secret"},
             )
             path.write_text(json.dumps([entry.to_dict()]), encoding="utf-8")
+            legacy_vault = Vault(path, backend=InMemoryKeyring())
             with self.assertRaisesRegex(RuntimeError, "legacy plaintext vault"):
-                Vault(path, backend=InMemoryKeyring())
+                legacy_vault.list()
             with self.assertRaises(PermissionError):
                 Vault.migrate_legacy(path, backend=InMemoryKeyring())
 
