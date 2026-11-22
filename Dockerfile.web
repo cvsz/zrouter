@@ -15,7 +15,7 @@ RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Application files (NOT provider.json — keys must come from env)
-COPY zrouter.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py web_app.py models.json ./
+COPY zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py web_app.py models.json ./
 COPY templates ./templates
 COPY static ./static
 COPY gunicorn.conf.py ./
