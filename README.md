@@ -406,11 +406,15 @@ docker build -t zrouter:local .
 docker run --rm zrouter:local --version
 
 # Run the proxy server
+# Prefer docker compose with read-only secret files; see DEPLOYMENT.md.
+# Direct docker run requires mounting both secret files readable by UID 10001:
 docker run --rm -d \
   --name zrouter \
-  -p 8000:8000 \
-  -e NVIDIA_API_KEYS="nvapi-xxx,nvapi-yyy" \
-  -e ROUTER_TOKEN=changeme \
+  -p 127.0.0.1:8000:8000 \
+  --mount type=bind,src="$PWD/secrets/nvidia_api_keys.txt",dst=/run/secrets/nvidia_api_keys,readonly \
+  --mount type=bind,src="$PWD/secrets/router_token.txt",dst=/run/secrets/router_token,readonly \
+  -e NVIDIA_KEYS_FILE=/run/secrets/nvidia_api_keys \
+  -e ROUTER_TOKEN_FILE=/run/secrets/router_token \
   zrouter:local
 ```
 
@@ -420,15 +424,11 @@ docker run --rm -d \
 cd dist/web
 docker build -f Dockerfile.web -t zrouter-web:latest .
 
-docker run -d \
-  --name zrouter-web \
-  -p 8000:8000 \
-  -e NVIDIA_API_KEYS="nvapi-xxx,nvapi-yyy" \
-  -e ROUTER_TOKEN=changeme \
-  zrouter-web:latest
+# Prefer docker compose with read-only secret files; see DEPLOYMENT.md.
+docker compose -f docker-compose.web.yml up -d --build
 ```
 
-The image installs the runtime dependency set from `requirements.txt`; Dependabot proposes digest updates.
+The runtime image installs `requirements-runtime.txt`; the web image installs `requirements-web.txt` (which includes the runtime manifest). Both images run as non-root UID 10001.
 
 ---
 
