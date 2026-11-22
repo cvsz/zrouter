@@ -3,8 +3,8 @@ from __future__ import annotations
 import os
 import tempfile
 import unittest
-from unittest.mock import patch
 from pathlib import Path
+from unittest.mock import patch
 
 import zrouter
 import zrouter_application
