@@ -31,7 +31,7 @@ Evidence for the refactor implementation is tied to the exact tested code commit
 
 ## Security limitations
 
-- The bot vault remains plaintext JSON. POSIX permissions are restricted to directory `0700` and file `0600`; this does not provide encryption or protect against the same OS user, root, or compromised processes.
+- The initial Phase 2 implementation used plaintext JSON with restrictive POSIX permissions. Phase 3 replaces active vault storage with a native OS keyring; legacy files require explicit migration and historical filesystem blocks/backups are not guaranteed to be securely erased.
 - Model discovery does not prove pricing. New models remain `free=false` and `pricing_status=unverified` until explicitly curated.
 - Remote plaintext HTTP provider endpoints are rejected; only loopback HTTP is allowed.
 
