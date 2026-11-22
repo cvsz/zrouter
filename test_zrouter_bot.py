@@ -6,8 +6,12 @@ import stat
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
+import sys
 
 from zrouter_bot import Vault, VaultEntry
+from zrouter_bot_storage import KeyringVaultBackend
 
 
 class InMemoryKeyring:
@@ -69,6 +73,33 @@ class TestVaultStorage(unittest.TestCase):
             restored = Vault(path, backend=backend)
             self.assertEqual(restored.get("legacy-2").value, {"password": "old-secret"})
             self.assertNotIn("old-secret", path.read_text(encoding="utf-8"))
+
+
+    def test_insecure_keyring_backend_is_rejected(self):
+        class InsecureBackend:
+            __module__ = "keyrings.alt.file"
+            priority = 1
+
+        fake_keyring = SimpleNamespace(
+            get_keyring=lambda: InsecureBackend(),
+            errors=SimpleNamespace(PasswordDeleteError=Exception),
+        )
+        with mock.patch.dict(sys.modules, {"keyring": fake_keyring}):
+            with self.assertRaisesRegex(RuntimeError, "Plaintext fallback is intentionally disabled"):
+                KeyringVaultBackend()
+
+    def test_missing_keyring_secret_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "vault.json"
+            path.write_text(
+                json.dumps([{
+                    "id": "missing-1", "name": "missing", "kind": "secret",
+                    "value": {}, "created_at": 1.0, "updated_at": 1.0
+                }]),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(RuntimeError, "secret is missing"):
+                Vault(path, backend=InMemoryKeyring()).get("missing-1")
 
     def test_corrupt_vault_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
