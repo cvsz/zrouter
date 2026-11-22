@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 MAX_REQUEST_BYTES = 16 * 1024 * 1024
 
 
