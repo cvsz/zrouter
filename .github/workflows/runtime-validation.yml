@@ -52,7 +52,12 @@ jobs:
           status=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/health)
           test "$status" = "401"
           curl -fsS -H 'Authorization: Bearer synthetic-ci-token' http://127.0.0.1:18080/health | python -c 'import json,sys; data=json.load(sys.stdin); assert data["ok"] is True and len(data["keys"]) == 1'
-          docker inspect --format '{{.State.Health.Status}}' zrouter-ci | grep -qx healthy
+          for attempt in $(seq 1 40); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' zrouter-ci)
+            if [ "$status" = "healthy" ]; then break; fi
+            sleep 2
+          done
+          test "$(docker inspect --format '{{.State.Health.Status}}' zrouter-ci)" = "healthy"
 
       - name: Build web image
         run: docker build --pull -f Dockerfile.web -t zrouter-web:ci .
@@ -130,20 +135,24 @@ jobs:
           KEYCHAIN_PASSWORD="$(python -c 'import secrets; print(secrets.token_hex(24))')"
           echo "::add-mask::$KEYCHAIN_PASSWORD"
           echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" zrouter-ci.keychain-db
-          security set-keychain-settings -lut 21600 zrouter-ci.keychain-db
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" zrouter-ci.keychain-db
-          security list-keychains -d user -s zrouter-ci.keychain-db
+          KEYCHAIN_PATH="$HOME/Library/Keychains/zrouter-ci.keychain-db"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
       - name: Run macOS Keychain integration
         if: runner.os == 'macOS'
         env:
           ZROUTER_NATIVE_KEYRING: "1"
+          PYTHON_KEYRING_BACKEND: keyring.backends.macOS.Keyring
         run: python -m pytest -q tests/test_native_keyring.py
 
       - name: Delete temporary macOS Keychain
         if: always() && runner.os == 'macOS'
-        run: security delete-keychain zrouter-ci.keychain-db || true
+        run: security delete-keychain "$HOME/Library/Keychains/zrouter-ci.keychain-db" || true
 
       - name: Run Windows Credential Locker integration
         if: runner.os == 'Windows'
