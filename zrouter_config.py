@@ -355,10 +355,31 @@ def load_keys(
     raw: list[str] = []
     for var in ("NVIDIA_API_KEYS", "NVIDIA_API_KEY"):
         raw += re.split(r"[,\s]+", os.environ.get(var, ""))
-    if keys_file:
-        with open(keys_file, encoding="utf-8") as f:
-            for line in f:
-                raw += re.split(r"[,\s]+", line.split("#", 1)[0].strip())
+    key_file = keys_file or os.environ.get("NVIDIA_KEYS_FILE")
+    if key_file:
+        if os.path.islink(key_file):
+            raise ValueError("refusing to read a symlinked NVIDIA keys file")
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        try:
+            fd = os.open(key_file, flags)
+        except OSError as exc:
+            raise RuntimeError("unable to open configured NVIDIA keys file") from exc
+        try:
+            metadata = os.fstat(fd)
+            if not stat.S_ISREG(metadata.st_mode):
+                raise ValueError("NVIDIA keys file must be a regular file")
+            if metadata.st_size > 64 * 1024:
+                raise ValueError("NVIDIA keys file exceeds the 64 KiB limit")
+            with os.fdopen(fd, "r", encoding="utf-8") as stream:
+                fd = -1
+                content = stream.read(64 * 1024 + 1)
+            if len(content.encode("utf-8")) > 64 * 1024 or "\\0" in content:
+                raise ValueError("NVIDIA keys file is invalid or too large")
+        finally:
+            if fd >= 0:
+                os.close(fd)
+        for line in content.splitlines():
+            raw += re.split(r"[,\\s]+", line.split("#", 1)[0].strip())
 
     # Load keys from provider.json (preserving per-provider base URLs)
     providers_cfg = ProviderConfig(providers_file or PROVIDERS_PATH)
