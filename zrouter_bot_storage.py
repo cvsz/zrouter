@@ -221,7 +221,9 @@ class Vault:
             for entry in self._entries.values():
                 value = backend.get(entry.id) if backend is not None else None
                 if value is None:
-                    raise RuntimeError(f"vault secret is missing for entry {entry.id!r}")
+                    raise RuntimeError(
+                        f"vault secret is missing for entry {entry.id!r}"
+                    )
                 result.append(
                     VaultEntry.from_dict(
                         {**entry.to_dict(), "value": _decode_secret(value)}
@@ -239,7 +241,9 @@ class Vault:
             value = self._get_backend().get(entry_id)
             if value is None:
                 raise RuntimeError(f"vault secret is missing for entry {entry_id!r}")
-            return VaultEntry.from_dict({**entry.to_dict(), "value": _decode_secret(value)})
+            return VaultEntry.from_dict(
+                {**entry.to_dict(), "value": _decode_secret(value)}
+            )
 
     def add(self, entry: VaultEntry) -> VaultEntry:
         self._ensure_not_legacy()
@@ -365,7 +369,9 @@ class Vault:
                 try:
                     store.delete(entry_id)
                 except Exception:
-                    log.exception("failed to roll back keyring migration entry %s", entry_id)
+                    log.exception(
+                        "failed to roll back keyring migration entry %s", entry_id
+                    )
             raise
         return len(entries)
 
