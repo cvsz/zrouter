@@ -156,12 +156,12 @@ serve: ## Run the OpenAI-compatible proxy on :8000 (set keys + token first)
 
 lint: ## Run ruff check and ruff format --check
 	@echo "==> Linting with ruff"
-	$(VENV_PYTHON) -m ruff check zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py test_zrouter_http.py zrouter-gui.py zrouter-tui.py
-	$(VENV_PYTHON) -m ruff format --check zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py test_zrouter_http.py zrouter-gui.py zrouter-tui.py
+	$(VENV_PYTHON) -m ruff check zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py test_zrouter_http.py zrouter-gui.py zrouter-tui.py
+	$(VENV_PYTHON) -m ruff format --check zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py test_zrouter_http.py zrouter-gui.py zrouter-tui.py
 
 format: ## Format code with ruff
 	@echo "==> Formatting with ruff"
-	$(VENV_PYTHON) -m ruff format zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py test_zrouter_http.py zrouter-gui.py zrouter-tui.py
+	$(VENV_PYTHON) -m ruff format zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py test_zrouter_http.py zrouter-gui.py zrouter-tui.py
 
 clean: ## Remove virtualenv, build artifacts, dist, and Python caches
 	@echo "==> Cleaning"
@@ -257,8 +257,8 @@ build\:tui: setup lint test ## Build TUI package with textual
 	@echo "==> Building TUI package"
 	@mkdir -p $(DIST)/tui
 	$(VENV_PIP) install textual rich
-	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py
-	cp nvidia.ico nvidia.png make_icon.py zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json zrouter $(DIST)/tui/
+	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py
+	cp nvidia.ico nvidia.png make_icon.py zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json zrouter $(DIST)/tui/
 	chmod +x $(DIST)/tui/zrouter
 	@echo "==> TUI package ready in $(DIST)/tui/"
 	@echo "==> Run: $(DIST)/tui/zrouter providers"
@@ -268,9 +268,9 @@ build\:web: setup lint test ## Build full web deployment package (Flask + Gunico
 	@rm -rf $(DIST)/web
 	@mkdir -p $(DIST)/web/templates $(DIST)/web/static/img
 	@echo "==> Compiling Python sources"
-	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py zrouter-gui.py web_app.py
+	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py zrouter-gui.py web_app.py
 	@echo "==> Copying application files"
-	cp zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
+	cp zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
 	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web $(DIST)/web/
 	mv $(DIST)/web/.dockerignore.web $(DIST)/web/.dockerignore
 	@echo "==> Copying templates and static assets"
@@ -287,7 +287,7 @@ build\:web\:dev: setup lint test ## Build web dev package (hot-reload, debug)
 	@rm -rf $(DIST)/web
 	@mkdir -p $(DIST)/web/templates $(DIST)/web/static/img
 	$(VENV_PYTHON) -m py_compile zrouter.py web_app.py
-	cp zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
+	cp zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
 	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web $(DIST)/web/
 	mv $(DIST)/web/.dockerignore.web $(DIST)/web/.dockerignore
 	cp -r templates/* $(DIST)/web/templates/
@@ -301,7 +301,7 @@ build\:web\:prod: setup lint test ## Build web production package (gunicorn, opt
 	@rm -rf $(DIST)/web
 	@mkdir -p $(DIST)/web/templates $(DIST)/web/static/img
 	$(VENV_PYTHON) -m py_compile zrouter.py web_app.py
-	cp zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
+	cp zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
 	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web $(DIST)/web/
 	mv $(DIST)/web/.dockerignore.web $(DIST)/web/.dockerignore
 	cp -r templates/* $(DIST)/web/templates/
@@ -315,7 +315,7 @@ build\:web\:ent: setup lint test ## Build web enterprise package (all features +
 	@rm -rf $(DIST)/web
 	@mkdir -p $(DIST)/web/templates $(DIST)/web/static/img
 	$(VENV_PYTHON) -m py_compile zrouter.py web_app.py
-	cp zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
+	cp zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
 	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web $(DIST)/web/
 	mv $(DIST)/web/.dockerignore.web $(DIST)/web/.dockerignore
 	cp -r templates/* $(DIST)/web/templates/
@@ -354,8 +354,8 @@ build\:deploy: setup lint test ## Full deploy: build web package + start server 
 build\:desktops: setup lint test ## Build desktop application packages (.desktop files)
 	@echo "==> Building desktop application packages"
 	@mkdir -p $(DIST)/desktops
-	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_contracts.py zrouter_http.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py zrouter_core.py zrouter_bot.py zrouter-gui.py
-	cp nvidia.ico nvidia.png make_icon.py zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py zrouter-gui.py models.json zrouter $(DIST)/desktops/
+	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_contracts.py zrouter_http.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_core.py zrouter_bot.py zrouter-gui.py
+	cp nvidia.ico nvidia.png make_icon.py zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py zrouter-gui.py models.json zrouter $(DIST)/desktops/
 	chmod +x $(DIST)/desktops/zrouter
 	@printf '[Desktop Entry]\nName=zrouter\nComment=NVIDIA Free-Model Router\nExec=zrouter %%f\nIcon=zrouter\nTerminal=false\nType=Application\nCategories=Network;Chat;\n' > $(DIST)/desktops/zrouter.desktop
 	@echo "==> Desktop package ready in $(DIST)/desktops/"
@@ -364,9 +364,9 @@ build\:desktops: setup lint test ## Build desktop application packages (.desktop
 build\:dev: setup lint test ## Development build with dev tools
 	@echo "==> Building development variant"
 	$(VENV_PIP) install --upgrade pytest ruff
-	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_contracts.py zrouter_http.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py zrouter_core.py zrouter_bot.py zrouter-gui.py
+	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_contracts.py zrouter_http.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_core.py zrouter_bot.py zrouter-gui.py
 	@mkdir -p $(DIST)/dev
-	cp nvidia.ico nvidia.png make_icon.py zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py zrouter-gui.py test_zrouter.py models.json zrouter $(DIST)/dev/
+	cp nvidia.ico nvidia.png make_icon.py zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py zrouter-gui.py test_zrouter.py models.json zrouter $(DIST)/dev/
 	chmod +x $(DIST)/dev/zrouter
 	@echo "==> Dev build ready in $(DIST)/dev/"
 	@echo "==> Run: $(DIST)/dev/zrouter providers"
@@ -404,7 +404,7 @@ build\:ent: setup lint test ## Enterprise build with all features
 		--add-data "$(CURDIR)/nvidia.ico:." \
 		--add-data "$(CURDIR)/nvidia.png:." \
 		zrouter-gui.py
-	cp nvidia.ico nvidia.png make_icon.py zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py zrouter-gui.py models.json zrouter $(DIST)/ent/
+	cp nvidia.ico nvidia.png make_icon.py zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py zrouter-gui.py models.json zrouter $(DIST)/ent/
 	chmod +x $(DIST)/ent/zrouter
 	@echo "==> Enterprise package ready in $(DIST)/ent/"
 	@echo "==> GUI: $(DIST)/ent/zrouter-enterprise"
@@ -413,8 +413,8 @@ build\:ent: setup lint test ## Enterprise build with all features
 build\:android: setup lint test ## Build Android package (requires Buildozer)
 	@echo "==> Building Android package"
 	@mkdir -p $(DIST)/android
-	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_contracts.py zrouter_http.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py zrouter_core.py zrouter_bot.py zrouter-gui.py
-	cp nvidia.ico nvidia.png make_icon.py zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py zrouter-gui.py models.json zrouter $(DIST)/android/
+	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_contracts.py zrouter_http.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_core.py zrouter_bot.py zrouter-gui.py
+	cp nvidia.ico nvidia.png make_icon.py zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py zrouter-gui.py models.json zrouter $(DIST)/android/
 	chmod +x $(DIST)/android/zrouter
 	@printf '[app]\ntitle = zrouter\npackage.name = zrouter\npackage.domain = com.nvidia.router\nsource.dir = .\nsource.include_exts = py,png,jpg,kv,atlas\nversion = 1.0\nrequirements = python3,kivy,requests\nosx.python_version = 3\nosx.kivy_version = 2.1.0\nandroid.archs = arm64-v8a\nandroid.api = 31\nandroid.minapi = 24\n' > $(DIST)/android/buildozer.spec
 	@echo "==> Android package ready in $(DIST)/android/"
@@ -423,8 +423,8 @@ build\:android: setup lint test ## Build Android package (requires Buildozer)
 build\:ios: setup lint test ## Build iOS package (requires BeeWare/Kivy, macOS only)
 	@echo "==> Building iOS package"
 	@mkdir -p $(DIST)/ios
-	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_contracts.py zrouter_http.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py zrouter_core.py zrouter_bot.py zrouter-gui.py
-	cp nvidia.ico nvidia.png make_icon.py zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py zrouter-gui.py models.json zrouter $(DIST)/ios/
+	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_contracts.py zrouter_http.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_core.py zrouter_bot.py zrouter-gui.py
+	cp nvidia.ico nvidia.png make_icon.py zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py zrouter-gui.py models.json zrouter $(DIST)/ios/
 	chmod +x $(DIST)/ios/zrouter
 	@printf '// swift-tools-version:5.5\nimport PackageDescription\n\nlet package = Package(\n    name: "zrouter",\n    platforms: [.iOS(.v15)],\n    products: [\n        .executable(name: "zrouter", targets: ["zrouter"])\n    ],\n    targets: [\n        .executableTarget(\n            name: "zrouter",\n            dependencies: [],\n            path: "."\n        )\n    ]\n)\n' > $(DIST)/ios/Package.swift
 	@echo "==> iOS package ready in $(DIST)/ios/"
@@ -439,7 +439,7 @@ build\:zrouter: setup lint test ## Build zrouter CLI entry point
 	@chmod +x zrouter
 	@mkdir -p $(DIST)/bin
 	cp zrouter $(DIST)/bin/zrouter
-	cp zrouter.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py $(DIST)/bin/
+	cp zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py $(DIST)/bin/
 	cp models.json $(DIST)/bin/models.json
 	cp 
 	cp nvidia.ico $(DIST)/bin/nvidia.ico
