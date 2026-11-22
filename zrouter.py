@@ -69,6 +69,7 @@ from zrouter_config import (
     Settings as Settings,
     _resource_path as _resource_path,
     load_keys as load_keys,
+    read_secret_file as read_secret_file,
 )
 from zrouter_contracts import (
     MAX_REQUEST_BYTES as MAX_REQUEST_BYTES,
