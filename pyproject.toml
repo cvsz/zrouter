@@ -33,14 +33,7 @@ dependencies = [
     "keyring>=25.6",
 ]
 
-dependencies = [
-    "requests>=2.31",
-    "keyring>=25.6",
-]
-
 [project.optional-dependencies]
-secure-vault = ["keyring>=25.6"]
-secure-vault = ["keyring>=25.6"]
 dev = [
     "pytest>=9.0",
     "ruff>=0.17.0",
