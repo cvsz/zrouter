@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import os
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 import zrouter
@@ -9,7 +11,7 @@ import zrouter_application
 import zrouter_catalog
 import zrouter_cli
 import zrouter_config
-from zrouter_config import read_secret_file
+from zrouter_config import load_keys, read_secret_file
 
 
 class TestArchitectureCompatibility(unittest.TestCase):
@@ -43,6 +45,27 @@ class TestArchitectureCompatibility(unittest.TestCase):
                 link_path.symlink_to(secret_path)
                 with self.assertRaisesRegex(ValueError, "symlinked"):
                     read_secret_file(str(link_path))
+
+    def test_load_keys_reads_protected_nvidia_keys_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            keys_path = Path(directory) / "nvidia-api-keys"
+            keys_path.write_text(
+                "synthetic-key-a,synthetic-key-b" + chr(10) + "synthetic-key-a",
+                encoding="utf-8",
+            )
+            with patch.dict(
+                os.environ,
+                {
+                    "NVIDIA_API_KEYS": "",
+                    "NVIDIA_API_KEY": "",
+                    "NVIDIA_KEYS_FILE": str(keys_path),
+                },
+            ):
+                keys = load_keys()
+            self.assertEqual(
+                [key.value for key in keys],
+                ["synthetic-key-a", "synthetic-key-b"],
+            )
 
     def test_cli_parser_preserves_existing_commands(self) -> None:
         parser = zrouter.build_parser()
