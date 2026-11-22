@@ -7,6 +7,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import requests
 
@@ -47,8 +48,19 @@ def run_smoke(model_id: str, timeout: float) -> None:
     base_url = os.environ.get(
         "NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"
     ).rstrip("/")
-    if not base_url.startswith("https://"):
-        raise ValueError("NVIDIA_BASE_URL must use HTTPS")
+    parsed_url = urlsplit(base_url)
+    if (
+        parsed_url.scheme != "https"
+        or parsed_url.hostname != "integrate.api.nvidia.com"
+        or parsed_url.username
+        or parsed_url.password
+        or parsed_url.query
+        or parsed_url.fragment
+        or parsed_url.path not in ("", "/v1")
+    ):
+        raise ValueError(
+            "NVIDIA_BASE_URL must be the official HTTPS NVIDIA NIM endpoint"
+        )
 
     load_allowed_model(model_id)
     payload: dict[str, Any] = {
