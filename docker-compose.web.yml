@@ -12,6 +12,7 @@ services:
       NVIDIA_CACHE_TTL: "3600"
       NVIDIA_TIMEOUT: "90"
       NVIDIA_MAX_WAIT: "60"
+      NVIDIA_ROUTER_HOME: /home/appuser/.nvidia_free_router
       WEB_HOST: 0.0.0.0
       WEB_PORT: "8000"
       ROUTER_TOKEN: ${ROUTER_TOKEN:?ROUTER_TOKEN must be configured}
@@ -21,4 +22,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    volumes:
+      - zrouter_bot_data:/home/appuser/.zrouter_bot
+      - zrouter_stats:/home/appuser/.nvidia_free_router
     restart: unless-stopped
+
+volumes:
+  zrouter_bot_data:
+  zrouter_stats:
