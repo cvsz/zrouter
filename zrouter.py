@@ -71,7 +71,9 @@ from zrouter_config import (
 )
 from zrouter_contracts import MAX_REQUEST_BYTES, RouterError
 from zrouter_core import ProviderRegistry, validate_base_url
-import zrouter_http as _zrouter_http
+from zrouter_http import (_read_body as _http_read_body,)
+from zrouter_http import (make_handler as _make_http_handler,)
+from zrouter_http import (serve as _serve_http,)
 from zrouter_runtime import RateLimiter, Stats, TTLCache, mask
 
 __all__ = [
@@ -141,9 +143,7 @@ __all__ = [
 ]
 
 log = logging.getLogger("nvrouter")
-_read_body = _zrouter_http._read_body
-_make_http_handler = _zrouter_http.make_handler
-_serve_http = _zrouter_http.serve
+_read_body = _http_read_body
 
 
 def make_handler(router: FreeRouter, token: str | None):
