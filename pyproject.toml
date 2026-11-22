@@ -51,7 +51,7 @@ zrouter = "zrouter:main"
 zcloud = "zrouter:main"
 
 [tool.setuptools]
-py-modules = ["zrouter", "zrouter_contracts", "zrouter_http", "zrouter_core", "zrouter_bot", "zrouter_bot_models", "zrouter_bot_storage", "zrouter_runtime"]
+py-modules = ["zrouter", "zrouter_config", "zrouter_catalog", "zrouter_application", "zrouter_cli", "zrouter_contracts", "zrouter_http", "zrouter_core", "zrouter_bot", "zrouter_bot_models", "zrouter_bot_storage", "zrouter_runtime"]
 
 [tool.setuptools.package-data]
 zrouter = ["*.json", "*.ico", "*.png"]
