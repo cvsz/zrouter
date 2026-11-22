@@ -286,7 +286,7 @@ build\:web\:dev: setup lint test ## Build web dev package (hot-reload, debug)
 	@echo "==> Building web dev package"
 	@rm -rf $(DIST)/web
 	@mkdir -p $(DIST)/web/templates $(DIST)/web/static/img
-	$(VENV_PYTHON) -m py_compile zrouter.py web_app.py
+	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py web_app.py
 	cp zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
 	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web requirements-runtime.txt requirements-web.txt $(DIST)/web/
 	mv $(DIST)/web/.dockerignore.web $(DIST)/web/.dockerignore
@@ -300,7 +300,7 @@ build\:web\:prod: setup lint test ## Build web production package (gunicorn, opt
 	@echo "==> Building web production package"
 	@rm -rf $(DIST)/web
 	@mkdir -p $(DIST)/web/templates $(DIST)/web/static/img
-	$(VENV_PYTHON) -m py_compile zrouter.py web_app.py
+	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py web_app.py
 	cp zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
 	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web requirements-runtime.txt requirements-web.txt $(DIST)/web/
 	mv $(DIST)/web/.dockerignore.web $(DIST)/web/.dockerignore
@@ -314,7 +314,7 @@ build\:web\:ent: setup lint test ## Build web enterprise package (all features +
 	@echo "==> Building web enterprise package"
 	@rm -rf $(DIST)/web
 	@mkdir -p $(DIST)/web/templates $(DIST)/web/static/img
-	$(VENV_PYTHON) -m py_compile zrouter.py web_app.py
+	$(VENV_PYTHON) -m py_compile zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py web_app.py
 	cp zrouter.py zrouter_config.py zrouter_catalog.py zrouter_application.py zrouter_cli.py zrouter_contracts.py zrouter_http.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py models.json nvidia.ico nvidia.png make_icon.py $(DIST)/web/
 	cp web_app.py gunicorn.conf.py Procfile Dockerfile.web docker-compose.web.yml runtime.txt .env.web.example README.web.md .dockerignore.web requirements-runtime.txt requirements-web.txt $(DIST)/web/
 	mv $(DIST)/web/.dockerignore.web $(DIST)/web/.dockerignore
