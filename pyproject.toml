@@ -31,6 +31,7 @@ classifiers = [
 [project.optional-dependencies]
 dev = [
     "pytest>=9.0",
+    "pytest-cov>=6.0",
     "ruff>=0.17.0",
     "pyinstaller>=6.0",
     "textual>=0.79.0",
@@ -43,7 +44,6 @@ web = [
 
 [project.scripts]
 zrouter = "zrouter:main"
-zcloud = "zrouter:main"
 
 [tool.setuptools]
 py-modules = ["zrouter", "zrouter_core", "zrouter_bot", "zrouter_bot_models", "zrouter_bot_storage", "zrouter_runtime"]

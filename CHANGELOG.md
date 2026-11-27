@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Do not infer a model's free/paid status from its name or route classification.
 - Require exact model IDs or explicit glob patterns for route matching.
 - Validate provider base URLs and reject non-loopback plaintext HTTP, embedded credentials, query strings, and fragments.
+- Add Dependabot configuration for weekly dependency vulnerability scanning (GitHub Actions + pip).
 
 ### Changed
 - Extract 3 bot enums and 17 serializable domain models into `zrouter_bot_models.py`; keep their original `zrouter_bot` import paths as compatibility re-exports.
@@ -24,6 +25,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Correct the CI Make invocation and reduce the unit-test job token to read-only permissions.
 - Add CodeQL analysis for Python and GitHub Actions on main-branch pushes and pull requests.
 - Restrict POSIX bot-vault directory/file permissions to 0700/0600, use atomic writes, reject symlinks, and fail closed on corrupted vault data; encryption remains a documented limitation.
+- Remove `zcloud = "zrouter:main"` script entry point; project ships only `zrouter` for naming consistency.
+- Add `pytest-cov` to dev dependencies to enable coverage measurement.
+
+### Fixed
+- `make lint` fails: 3 unused exception variables (F841) — `zrouter.py`, `web_app.py`
+- `make format --check` fails: 4 files unformatted — `web_app.py`, `gunicorn.conf.py`, `make_icon.py`
+- CI `ci-cd.yml` uses `.venv/bin/make` but `make` is not in `.venv/bin/`
+- Windows build `build-windows.yml` references nonexistent `zcloud-gui.py`
+- `Dockerfile.web` healthcheck uses `${ROUTER_TOKEN}` not set as ENV → always 401
+- `Dockerfile` healthcheck uses `${ROUTER_TOKEN}` not set as ENV → always 401
+- `CHANGELOG.md` references `zcloud-gui.py`/`zcloud-tui.py`/`zcloud` (actual: `zrouter-gui.py`/`zrouter-tui.py`/`zrouter`)
+- README badges reference non-existent workflows and unverified "100% coverage"
 
 ## [1.0.0] - 2026-11-15
 
