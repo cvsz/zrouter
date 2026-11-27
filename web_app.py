@@ -82,6 +82,19 @@ def _get_router() -> FreeRouter:
 # --------------------------------------------------------------------------- #
 _token: str | None = os.environ.get("ROUTER_TOKEN")
 
+# Fail closed: require ROUTER_TOKEN when bound to a non-loopback interface.
+# This check runs both under `python web_app.py` (via main()) and under gunicorn
+# (at module import time), since gunicorn does not call main().
+_web_host = os.environ.get("WEB_HOST", "0.0.0.0")
+_loopback = {"127.0.0.1", "localhost", "::1", "0:0:0:0:0:0:0:1"}
+if not _token and _web_host not in _loopback:
+    log.critical(
+        "ROUTER_TOKEN is required when binding to %s; refusing to start an "
+        "unauthenticated web app on a non-loopback interface.",
+        _web_host,
+    )
+    sys.exit(1)
+
 
 def _authed() -> bool:
     """Return True if request carries valid Bearer token (or no token required)."""
@@ -210,7 +223,17 @@ def chat_completions() -> Any:
         body = request.get_json(force=True, silent=True) or {}
 
         if body.get("stream"):
-            resp, model, _key = r.open_chat_stream(body)
+            resp = None
+            model = None
+            try:
+                resp, model, _key = r.open_chat_stream(body)
+            except RouterError:
+                raise
+            except Exception:
+                log.exception("unhandled error opening chat stream")
+                return jsonify(
+                    {"error": {"message": "internal server error", "code": 500}}
+                ), 500
 
             def gen():
                 try:
@@ -218,7 +241,8 @@ def chat_completions() -> Any:
                         if line:
                             yield line + b"\n\n"
                 finally:
-                    resp.close()
+                    if resp is not None:
+                        resp.close()
 
             return Response(
                 stream_with_context(gen()),

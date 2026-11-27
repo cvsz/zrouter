@@ -11,7 +11,9 @@ import os
 # --------------------------------------------------------------------------- #
 # Socket
 # --------------------------------------------------------------------------- #
-bind = os.environ.get("WEB_BIND", "0.0.0.0:8000")
+bind = os.environ.get("WEB_BIND", "127.0.0.1:8000")
+# Binding to 0.0.0.0 (non-loopback) requires ROUTER_TOKEN to be set;
+# the web app fails closed if a token is missing on a public interface.
 backlog = 2048
 
 # --------------------------------------------------------------------------- #

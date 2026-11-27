@@ -55,14 +55,14 @@ ENV NVIDIA_RPM=35
 ENV NVIDIA_CACHE_TTL=3600
 ENV NVIDIA_TIMEOUT=90
 ENV NVIDIA_MAX_WAIT=60
-# ROUTER_TOKEN must be overridden at runtime (docker run -e ROUTER_TOKEN=...)
-# Healthcheck requires a valid token; default is a placeholder that must be changed.
-ENV ROUTER_TOKEN=changeme
+# ROUTER_TOKEN must be set at runtime (docker run -e ROUTER_TOKEN=...).
+# Binding to 0.0.0.0 without a token causes serve() to fail closed.
+ENV ROUTER_TOKEN=""
 
 # Expose port for the OpenAI-compatible proxy
 EXPOSE 8000
 
-# Health check (requires ROUTER_TOKEN; /health is authenticated)
+# Healthcheck runs on localhost (loopback), where no token is required.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f -H "Authorization: Bearer ${ROUTER_TOKEN}" http://localhost:8000/health || exit 1
 

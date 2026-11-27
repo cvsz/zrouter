@@ -836,5 +836,128 @@ class TestCacheBehavior(unittest.TestCase):
             self.assertEqual(mock_open.call_count, 2)
 
 
+class TestChatStreamErrorHandling(unittest.TestCase):
+    """Regression tests for chat_stream error handling and response closure."""
+
+    def setUp(self):
+        self.r = FreeRouter.__new__(FreeRouter)
+        self.r.keys = [Key("k1")]
+        self.r._available = ["gemma-3-27b"]
+        self.r._available_at = time.time()
+        self.r.available_ids = mock.Mock(return_value=self.r._available)
+        self.r.stats = None
+        self.r.cache = TTLCache(256, 3600)
+
+    def test_chat_stream_propagates_router_error(self):
+        """open_chat_stream failure must propagate RouterError, not UnboundLocalError."""
+        with (
+            mock.patch.object(
+                FreeRouter,
+                "open_chat_stream",
+                side_effect=RouterError(502, "upstream down"),
+            ),
+            self.assertRaises(RouterError) as ctx,
+        ):
+            list(self.r.chat_stream([{"role": "user", "content": "hi"}]))
+        self.assertEqual(ctx.exception.status, 502)
+
+    def test_chat_stream_closes_response_on_success(self):
+        """The upstream response must be closed after streaming completes."""
+        mock_resp = mock.Mock()
+        mock_resp.iter_lines.return_value = [
+            'data: {"choices":[{"delta":{"content":"hi"}}]}',
+            "data: [DONE]",
+        ]
+        with mock.patch.object(
+            FreeRouter,
+            "open_chat_stream",
+            return_value=(mock_resp, "m1", self.r.keys[0]),
+        ):
+            result = list(self.r.chat_stream([{"role": "user", "content": "hi"}]))
+        self.assertEqual(result, ["hi"])
+        mock_resp.close.assert_called_once()
+
+    def test_chat_stream_closes_response_on_iteration_error(self):
+        """The upstream response must be closed even if iteration raises."""
+        mock_resp = mock.Mock()
+        mock_resp.iter_lines.side_effect = RuntimeError("stream broke")
+        with (
+            mock.patch.object(
+                FreeRouter,
+                "open_chat_stream",
+                return_value=(mock_resp, "m1", self.r.keys[0]),
+            ),
+            self.assertRaises(RuntimeError),
+        ):
+            list(self.r.chat_stream([{"role": "user", "content": "hi"}]))
+        mock_resp.close.assert_called_once()
+
+
+class TestAvailableIdsResponseClosure(unittest.TestCase):
+    """Regression tests for available_ids response closure."""
+
+    def setUp(self):
+        self.r = FreeRouter.__new__(FreeRouter)
+        self.r._local = threading.local()
+        self.r.keys = [Key("k1")]
+        self.r._available = None
+        self.r._available_at = 0.0
+
+    def test_available_ids_closes_response_on_success(self):
+        mock_resp = mock.Mock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"data": [{"id": "gemma-3-27b"}]}
+        with (
+            mock.patch.object(self.r, "_key_order", return_value=self.r.keys),
+            mock.patch.object(self.r.s, "get", return_value=mock_resp),
+        ):
+            result = self.r.available_ids(refresh=True)
+        self.assertEqual(result, ["gemma-3-27b"])
+        mock_resp.close.assert_called_once()
+
+    def test_available_ids_closes_response_on_429(self):
+        mock_resp = mock.Mock()
+        mock_resp.status_code = 429
+        with (
+            mock.patch.object(self.r, "_key_order", return_value=self.r.keys),
+            mock.patch.object(self.r.s, "get", return_value=mock_resp),
+            self.assertRaises(RouterError),
+        ):
+            self.r.available_ids(refresh=True)
+        mock_resp.close.assert_called_once()
+
+
+class TestProbeResponseClosure(unittest.TestCase):
+    """Regression tests for probe response closure."""
+
+    def setUp(self):
+        self.r = FreeRouter.__new__(FreeRouter)
+        self.r._local = threading.local()
+        self.r.keys = [Key("k1")]
+        self.r._available = ["gemma-3-27b"]
+        self.r._available_at = time.time()
+        self.r.available_ids = mock.Mock(return_value=self.r._available)
+        self.r.stats = None
+
+    def test_probe_closes_response_on_200(self):
+        mock_resp = mock.Mock(status_code=200)
+        with (
+            mock.patch.object(self.r, "_key_order", return_value=self.r.keys),
+            mock.patch.object(self.r.s, "post", return_value=mock_resp),
+        ):
+            self.r.probe()
+        mock_resp.close.assert_called_once()
+
+    def test_probe_closes_response_on_401(self):
+        mock_resp = mock.Mock(status_code=401)
+        with (
+            mock.patch.object(self.r, "_key_order", return_value=self.r.keys),
+            mock.patch.object(self.r.s, "post", return_value=mock_resp),
+        ):
+            self.r.probe()
+        mock_resp.close.assert_called_once()
+        self.assertTrue(self.r.keys[0].dead)
+
+
 if __name__ == "__main__":
     unittest.main()

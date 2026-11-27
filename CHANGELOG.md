@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Require exact model IDs or explicit glob patterns for route matching.
 - Validate provider base URLs and reject non-loopback plaintext HTTP, embedded credentials, query strings, and fragments.
 - Add Dependabot configuration for weekly dependency vulnerability scanning (GitHub Actions + pip).
+- Remove default `ROUTER_TOKEN=changeme` from `Dockerfile`, `Dockerfile.web`, and `.env.web` — no default credentials; token must be set at runtime.
+- Change default gunicorn bind from `0.0.0.0` to `127.0.0.1` — prevents unauthenticated public exposure when run via `gunicorn -c gunicorn.conf.py web_app:app`.
+- Add module-level `ROUTER_TOKEN` fail-closed check in `web_app.py` for gunicorn deployment (bypasses `main()`).
 
 ### Changed
 - Extract 3 bot enums and 17 serializable domain models into `zrouter_bot_models.py`; keep their original `zrouter_bot` import paths as compatibility re-exports.
@@ -37,6 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Dockerfile` healthcheck uses `${ROUTER_TOKEN}` not set as ENV → always 401
 - `CHANGELOG.md` references `zcloud-gui.py`/`zcloud-tui.py`/`zcloud` (actual: `zrouter-gui.py`/`zrouter-tui.py`/`zrouter`)
 - README badges reference non-existent workflows and unverified "100% coverage"
+- Fix `chat_stream()` `UnboundLocalError` when `open_chat_stream()` raises `RouterError` — error now propagates instead of being masked — `zrouter.py`
+- Fix same `UnboundLocalError` pattern in `web_app.py` streaming handler — `web_app.py`
+- Fix HTTP response resource leaks in `probe()` and `available_ids()` — responses now closed on all code paths — `zrouter.py`
+- Replace real API keys in `.env` and `.env.web` with placeholders — no credentials on disk
 
 ## [1.0.0] - 2026-11-15
 
