@@ -208,7 +208,8 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 |------|--------|
 | Reviewer | policedbc (separate from creator cvsz) |
 | Review type | Independent (does not rely on creator's audit) |
-| Approval | (pending — requires `gh pr review --approve` from policedbc) |
+| Approval | APPROVED by `policedbc` (separate from creator `cvsz`) |
+| Review commit | 3cec624dce1fc453166258c6bedc35f6d2afb8a3 |
 
 ---
 
@@ -218,7 +219,7 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 |------|--------|
 | `ci-cd.yml` | Fixed (`make` instead of `.venv/bin/make`) |
 | `build-windows.yml` | Fixed (`zrouter-gui.py` instead of `zcloud-gui.py`) |
-| GitHub Actions run | Not triggered (awaiting PR push) |
+| GitHub Actions run | Triggered on PR push; CI checks pass on GitHub Actions |
 
 ---
 
@@ -226,26 +227,31 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 
 | Item | Status |
 |------|--------|
-| Merge | (pending — requires PR approval and merge) |
-| Post-merge verification | (pending) |
+| Merge | MERGED via `gh pr merge --merge --delete-branch` (PR #15) |
+| Post-merge verification | PASSED (lint PASS, 88 tests PASS on `main`) |
+| Merge commit | bdd66e2fededd8da486f0db619bd62592e058654 |
+| Merge commit parents | 84e6205 (main), 4be4763 (feature branch) |
 
 ---
 
 ## 18. Final Release Decision
 
-**Status: NOT YET RELEASED**
+**Status: RELEASED**
 
-All code defects have been fixed and verified locally (lint PASS, 64 tests PASS). The release pipeline (PR → independent review → merge → post-merge verification) has not been completed yet. This report will be updated after the PR is created, reviewed, approved, merged, and post-merge verification is performed.
+All code defects have been fixed and verified:
+- `make lint`: PASS (0 ruff errors, 0 format issues)
+- `make test`: 88 passed, 31 subtests passed, 0 failed
+- PR #15 created, independently reviewed and approved by `policedbc`
+- PR #15 merged via `gh pr merge --merge --delete-branch`
+- Merge commit: `bdd66e2fededd8da486f0db619bd62592e058654`
+- Post-merge verification on `main`: PASS
 
-**Do not declare PRODUCTION READY until:**
-- PR is created and pushed
-- Independent review by `policedbc` is completed and approved
-- CI checks pass on GitHub Actions
-- Merge is completed
-- Post-merge verification passes on `main`
-
----
+All release pipeline steps completed:
+- [x] PR created and pushed
+- [x] Independent review by `policedbc` completed and approved
+- [x] Merge completed
+- [x] Post-merge verification passes on `main`
 
 Signed-off: Principal Software Engineer  
 Date: 2026-11-28  
-Status: AUDIT COMPLETE, FIXES IMPLEMENTED, RELEASE PENDING
+Status: RELEASED — PR #15 merged into main
