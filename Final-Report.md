@@ -133,7 +133,7 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 | Input validation (JSON, 16 MiB cap) | Verified (tests pass) |
 | Docker healthcheck auth | FIXED (ROUTER_TOKEN now set as ENV) |
 | No secrets committed | Verified (`.env`, `.env.web`, `provider.json` are gitignored) |
-| Dependency vulnerabilities | Dependabot configured for weekly scanning |
+| Dependency vulnerabilities | Dependabot configured for weekly scanning; GitHub reports 13 vulnerabilities (2 critical, 8 high, 3 moderate) on default branch — Dependabot will generate remediation PRs |
 | SAST/DAST | CodeQL configured (`.github/workflows/codeql.yml`); Semgrep/Bandit not run |
 
 ---
@@ -179,6 +179,7 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 | `zrouter_bot` missing breaks router import | Low | High | `zrouter_bot.py` exists in repo; all imports resolve |
 | Unverified security claims | Medium | Medium | Removed unverified badges; documented actual security state |
 | Removing `zcloud` entry point breaks existing installs | Low | Low | `zrouter` entry point remains; `zcloud` was legacy alias |
+| GitHub dependency vulnerabilities | High | High | 13 vulnerabilities (2 critical, 8 high, 3 moderate) on default branch; Dependabot configured for weekly scanning and automated PR remediation |
 
 ---
 
