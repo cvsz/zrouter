@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: |
           .venv/bin/pip install --upgrade pip
-          .venv/bin/pip install requests pytest ruff pyinstaller
+          .venv/bin/pip install requests pytest ruff pyinstaller pytest-cov
 
       - name: Run lint checks
         run: make lint
@@ -71,7 +71,7 @@ jobs:
       - name: Install dependencies
         run: |
           .venv/bin/pip install --upgrade pip
-          .venv/bin/pip install requests pytest ruff pyinstaller
+          .venv/bin/pip install requests pytest ruff pyinstaller pytest-cov
 
       - name: Build all variants
         run: make build:all

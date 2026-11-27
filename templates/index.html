@@ -89,6 +89,31 @@
     text-transform: uppercase;
     letter-spacing: 0.4px;
   }
+  header .locale-selector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  header .locale-selector button {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--muted);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  header .locale-selector button:hover {
+    border-color: var(--accent);
+    color: var(--text);
+    background: rgba(212, 175, 55, 0.05);
+  }
+  header .locale-selector button.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
 
   /* ---------- Nav ---------- */
   nav {
@@ -547,6 +572,10 @@
       <span class="chip" id="chip-status"><span class="dot bad"></span>connecting</span>
       <span class="chip" id="chip-keys">0 keys</span>
     </div>
+    <div class="locale-selector">
+      <button id="locale-en" class="active" data-i18n-key="language_en">EN</button>
+      <button id="locale-zh" data-i18n-key="language_zh">中文</button>
+    </div>
   </header>
 
   <nav>
@@ -559,20 +588,20 @@
   <main>
     <!-- Overview -->
     <section id="overview" class="active">
-      <h3 style="margin-bottom:16px;font-size:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Router Status</h3>
+      <h3 style="margin-bottom:16px;font-size:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;" data-i18n-key="router_status"></h3>
       <div class="grid">
         <div class="card">
-          <h3><span class="dot" id="dot-health"></span>Health</h3>
+          <h3><span class="dot" id="dot-health"></span><span data-i18n-key="health"></span></h3>
           <div class="big" id="health-text">—</div>
-          <div class="small" id="health-detail">checking…</div>
+          <div class="small" id="health-detail"></div>
         </div>
         <div class="card">
-          <h3>API Keys</h3>
+          <h3><span data-i18n-key="api_keys"></span></h3>
           <div class="big" id="key-count">—</div>
           <div class="small" id="key-detail">loading…</div>
         </div>
         <div class="card">
-          <h3>Routes</h3>
+          <h3><span data-i18n-key="routes"></span></h3>
           <div class="big" id="route-count">—</div>
           <div class="small" id="route-detail">loading…</div>
         </div>
@@ -583,14 +612,14 @@
         </div>
       </div>
       <div class="card" style="margin-top:0;">
-        <h3>Key Details</h3>
+        <h3><span data-i18n-key="key_details"></span></h3>
         <div id="key-list" style="display:flex;flex-direction:column;gap:6px;"></div>
       </div>
     </section>
 
     <!-- Models -->
     <section id="models">
-      <h3 style="margin-bottom:16px;font-size:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Allowlisted Models by Route</h3>
+      <h3 style="margin-bottom:16px;font-size:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;" data-i18n-key="allowlisted_models_by_route"></h3>
       <div id="models-grid"></div>
     </section>
 
@@ -598,13 +627,13 @@
     <section id="chat">
       <div class="chat-wrap">
         <div class="chat-sidebar">
-          <h3>Conversation</h3>
+          <h3 data-i18n-key="conversation"></h3>
           <div class="chat-history" id="chat-history">
-            <div class="chat-msg system">Router ready. Send a message.</div>
+            <div class="chat-msg system" data-i18n-key="router_ready_send_message"></div>
           </div>
           <div class="chat-input-area">
             <div class="chat-input-wrap">
-              <textarea id="chat-prompt" placeholder="Type a message…" rows="1"></textarea>
+              <textarea id="chat-prompt" placeholder="Type a message…"></textarea>
               <button class="send chat-send" id="chat-send">Send</button>
             </div>
             <div class="chat-error" id="chat-error"></div>
@@ -613,17 +642,17 @@
         <div class="chat-main">
           <div class="chat-messages" id="chat-messages"></div>
           <div class="chat-controls">
-            <label>Route <select id="chat-route">
-              <option value="auto">auto</option>
-              <option value="general">general</option>
-              <option value="code">code</option>
-              <option value="reasoning">reasoning</option>
-              <option value="fast">fast</option>
-              <option value="vision">vision</option>
+            <label><span data-i18n-key="route"></span>: <select id="chat-route">
+              <option value="auto"><span data-i18n-key="auto"></span></option>
+              <option value="general"><span data-i18n-key="general"></span></option>
+              <option value="code"><span data-i18n-key="code"></span></option>
+              <option value="reasoning"><span data-i18n-key="reasoning"></span></option>
+              <option value="fast"><span data-i18n-key="fast"></span></option>
+              <option value="vision"><span data-i18n-key="vision"></span></option>
             </select></label>
             <label>Model <input type="text" id="chat-model" placeholder="e.g. glm-4.7" style="width:140px;"></label>
             <label>Max tokens <input type="text" id="chat-max" value="1024" style="width:70px;"></label>
-            <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="chat-stream" checked> Stream</label>
+            <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="chat-stream" checked><span data-i18n-key="stream"></span></label>
             <span class="spinner hidden" id="chat-spinner"></span>
             <span class="small" id="chat-model-badge"></span>
           </div>
@@ -633,23 +662,270 @@
 
     <!-- Stats -->
     <section id="stats">
-      <h3 style="margin-bottom:16px;font-size:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Statistics</h3>
+      <h3 style="margin-bottom:16px;font-size:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;" data-i18n-key="statistics"></h3>
       <button class="btn" onclick="loadStats()">Refresh</button>
       <table class="stat-table">
         <thead>
-          <tr><th>Model</th><th>OK</th><th>Fail</th><th>429</th><th>Avg (s)</th></tr>
+          <tr><th><span data-i18n-key="model"></span></th><th><span data-i18n-key="ok"></span></th><th><span data-i18n-key="fail"></span></th><th><span data-i18n-key="429"></span></th><th><span data-i18n-key="avg_s"></span></th></tr>
         </thead>
         <tbody id="stats-models"></tbody>
       </table>
       <table class="stat-table" style="margin-top:24px;">
         <thead>
-          <tr><th>Key (masked)</th><th>OK</th><th>Fail</th><th>429</th></tr>
+          <tr><th><span data-i18n-key="key_masked"></span></th><th><span data-i18n-key="ok"></span></th><th><span data-i18n-key="fail"></span></th><th><span data-i18n-key="429"></span></th></tr>
         </thead>
         <tbody id="stats-keys"></tbody>
       </table>
     </section>
   </main>
 </div>
+
+<script>
+  // i18n messages - English is the default
+  const i18nMessages = {
+    // Common
+    ok: 'OK',
+    cancel: 'Cancel',
+    save: 'Save',
+    delete: 'Delete',
+    edit: 'Edit',
+    create: 'Create',
+    close: 'Close',
+    loading: 'Loading...',
+    error: 'Error',
+    success: 'Success',
+    warning: 'Warning',
+    info: 'Info',
+
+    // Auth
+    signIn: 'Sign in',
+    signUp: 'Sign up',
+    signOut: 'Sign out',
+    email: 'Email',
+    password: 'Password',
+    confirmPassword: 'Confirm password',
+    emailPlaceholder: 'Enter your email',
+    passwordPlaceholder: 'Enter your password',
+    signInButton: 'Sign in',
+    signUpButton: 'Sign up',
+    needAccount: "Don't have an account?",
+    alreadyHaveAccount: 'Already have an account?',
+
+    // Navigation
+    home: 'Home',
+    chat: 'Chat',
+    models: 'Models',
+    settings: 'Settings',
+    profile: 'Profile',
+    keys: 'API Keys',
+    providers: 'Providers',
+    stats: 'Stats',
+
+    // Chat
+    newChat: 'New Chat',
+    sendMessage: 'Send message',
+    messagePlaceholder: 'Type your message...',
+    systemPrompt: 'System prompt',
+    model: 'Model',
+    route: 'Route',
+    maxTokens: 'Max tokens',
+    temperature: 'Temperature',
+    stream: 'Stream',
+
+    // Stats
+    statsTitle: 'Stats',
+    totalRequests: 'Total requests',
+    okRequests: 'OK requests',
+    failedRequests: 'Failed requests',
+    cacheHits: 'Cache hits',
+    avgLatency: 'Average latency',
+    perModel: 'Per model',
+    perKey: 'Per key',
+
+    // Settings
+    settingsTitle: 'Settings',
+    language: 'Language',
+    languageLabel: 'Language',
+    theme: 'Theme',
+    themeLabel: 'Theme',
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System',
+    apiKeys: 'API Keys',
+    apiKeysLabel: 'API Keys',
+    providers: 'Providers',
+    providersLabel: 'Providers',
+
+    // Common actions
+    saveChanges: 'Save changes',
+    cancelEdit: 'Cancel',
+    deleteItem: 'Delete',
+    confirmDelete: 'Are you sure you want to delete this?',
+    confirmDeleteItem: 'Are you sure you want to delete "{{name}}"?',
+
+    // Errors
+    errorNetwork: 'Network error. Please check your connection.',
+    errorUnauthorized: 'You are not authorized to perform this action.',
+    errorNotFound: 'The requested resource was not found.',
+    errorServer: 'Server error. Please try again later.',
+    errorValidation: 'Please check your input and try again.',
+    errorUnknown: 'An unexpected error occurred. Please try again later.',
+  };
+
+  // Chinese translations
+  const i18nZhMessages = {
+    // Common
+    ok: '确定',
+    cancel: '取消',
+    save: '保存',
+    delete: '删除',
+    edit: '编辑',
+    create: '创建',
+    close: '关闭',
+    loading: '加载中...',
+    error: '错误',
+    success: '成功',
+    warning: '警告',
+    info: '信息',
+
+    // Auth
+    signIn: '登录',
+    signUp: '注册',
+    signOut: '退出登录',
+    email: '电子邮箱',
+    password: '密码',
+    confirmPassword: '确认密码',
+    emailPlaceholder: '请输入您的电子邮箱',
+    passwordPlaceholder: '请输入您的密码',
+    signInButton: '登录',
+    signUpButton: '注册',
+    needAccount: '没有账号？',
+    alreadyHaveAccount: '已有账号？',
+
+    // Navigation
+    home: '首页',
+    chat: '对话',
+    models: '模型',
+    settings: '设置',
+    profile: '个人资料',
+    keys: 'API 密钥',
+    providers: '提供商',
+    stats: '统计',
+
+    // Chat
+    newChat: '新对话',
+    sendMessage: '发送消息',
+    messagePlaceholder: '输入您的消息...',
+    systemPrompt: '系统提示',
+    model: '模型',
+    route: '路由',
+    maxTokens: '最大标记数',
+    temperature: '温度',
+    stream: '流式输出',
+
+    // Stats
+    statsTitle: '统计',
+    totalRequests: '请求总数',
+    okRequests: '成功请求数',
+    failedRequests: '失败请求数',
+    cacheHits: '缓存命中数',
+    avgLatency: '平均延迟',
+    perModel: '按模型',
+    perKey: '按密钥',
+
+    // Settings
+    settingsTitle: '设置',
+    language: '语言',
+    languageLabel: '语言',
+    theme: '主题',
+    themeLabel: '主题',
+    light: '浅色',
+    dark: '深色',
+    system: '跟随系统',
+    apiKeys: 'API 密钥',
+    apiKeysLabel: 'API 密钥',
+    providers: '提供商',
+    providersLabel: '提供商',
+
+    // Common actions
+    saveChanges: '保存更改',
+    cancelEdit: '取消',
+    deleteItem: '删除',
+    confirmDelete: '您确定要删除吗？',
+    confirmDeleteItem: '您确定要删除 "{{name}}" 吗？',
+
+    // Errors
+    errorNetwork: '网络错误。请检查您的网络连接。',
+    errorUnauthorized: '您没有权限执行此操作。',
+    errorNotFound: '请求的资源不存在。',
+    errorServer: '服务器错误。请稍后再试。',
+    errorValidation: '请检查您的输入并重试。',
+    errorUnknown: '发生未知错误。请稍后再试。',
+  };
+
+  // Current locale
+  let currentLocale = 'en';
+
+  // Get translation for current locale
+  function i18n(key) {
+    if (currentLocale === 'zh' && i18nZhMessages[key] !== undefined) {
+      return i18nZhMessages[key];
+    }
+    return (i18nMessages[key] || key);
+  }
+
+  // Set locale and update UI elements with data-i18n-key attributes
+  function setLocale(locale) {
+    currentLocale = locale;
+
+    const messages = locale === 'zh' ? i18nZhMessages : i18nMessages;
+
+    // Update all elements with data-i18n-key attributes
+    document.querySelectorAll('[data-i18n-key]').forEach(element => {
+      const key = element.getAttribute('data-i18n-key');
+      if (messages[key] !== undefined) {
+        element.textContent = messages[key];
+      }
+    });
+
+    // Update placeholder attributes
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+      const key = element.getAttribute('data-i18n-placeholder');
+      if (messages[key] !== undefined) {
+        element.placeholder = messages[key];
+      }
+    });
+
+    // Update button text content (elements with data-i18n-text)
+    document.querySelectorAll('[data-i18n-text]').forEach(element => {
+      const key = element.getAttribute('data-i18n-text');
+      if (messages[key] !== undefined) {
+        element.textContent = messages[key];
+      }
+    });
+
+    // Update locale buttons
+    document.querySelectorAll('#locale-en, #locale-zh').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    const activeBtn = document.getElementById(`locale-${locale}`);
+    if (activeBtn) {
+      activeBtn.classList.add('active');
+    }
+
+    // Update document lang attribute
+    document.documentElement.lang = locale;
+  }
+
+  // Initialize i18n on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    setLocale('en');
+
+    // Locale selector
+    document.getElementById('locale-en').addEventListener('click', () => setLocale('en'));
+    document.getElementById('locale-zh').addEventListener('click', () => setLocale('zh'));
+  });
+</script>
 
 <script>
 const API = '/';
@@ -678,15 +954,15 @@ async function loadOverview() {
     const keys = health.keys || [];
     const unhealthy = keys.some(k => k.status !== 'ready');
     document.getElementById('dot-health').className = 'dot ' + (unhealthy ? 'bad' : 'ok');
-    document.getElementById('health-text').textContent = unhealthy ? 'Degraded' : 'Healthy';
-    document.getElementById('health-detail').textContent = keys.length + ' key' + (keys.length !== 1 ? 's' : '') + ' — ' + (unhealthy ? 'some keys limited/dead' : 'all ready');
-    document.getElementById('chip-status').innerHTML = '<span class="dot ' + (unhealthy ? 'bad' : 'ok') + '"></span>' + (unhealthy ? 'Degraded' : 'Online');
+    document.getElementById('health-text').textContent = unhealthy ? i18n('degraded') : i18n('healthy');
+    document.getElementById('health-detail').textContent = keys.length + ' key' + (keys.length !== 1 ? 's' : '') + ' — ' + (unhealthy ? i18n('some_keys_limited_dead') : i18n('all_ready'));
+    document.getElementById('chip-status').innerHTML = '<span class="dot ' + (unhealthy ? 'bad' : 'ok') + '"></span>' + (unhealthy ? i18n('degraded') : i18n('online'));
     document.getElementById('chip-keys').textContent = keys.length + ' key' + (keys.length !== 1 ? 's' : '');
     document.getElementById('key-count').textContent = keys.length;
     document.getElementById('key-detail').textContent = keys.filter(k => k.status === 'ready').length + ' ready';
     const routeCount = Object.keys(models).length;
     document.getElementById('route-count').textContent = routeCount;
-    document.getElementById('route-detail').textContent = 'allowlisted routes';
+    document.getElementById('route-detail').textContent = i18n('allowlisted_routes');
     const kl = document.getElementById('key-list');
     kl.innerHTML = '';
     keys.forEach(k => {
@@ -698,7 +974,7 @@ async function loadOverview() {
       kl.appendChild(row);
     });
   } catch (e) {
-    document.getElementById('health-text').textContent = 'Error';
+    document.getElementById('health-text').textContent = i18n('error');
     document.getElementById('health-detail').textContent = e.message;
   }
 }
@@ -728,9 +1004,9 @@ async function loadModels() {
         mg.appendChild(c);
       });
     }
-    if (!any) grid.innerHTML = '<div class="empty">No allowlisted models found. Check your API keys and model catalog.</div>';
+    if (!any) grid.innerHTML = '<div class="empty">' + i18n('no_allowlisted_models_found') + '</div>';
   } catch (e) {
-    document.getElementById('models-grid').innerHTML = '<div class="error">Error loading models: ' + escapeHtml(e.message) + '</div>';
+    document.getElementById('models-grid').innerHTML = '<div class="error">' + i18n('error_loading_models') + ': ' + escapeHtml(e.message) + '</div>';
   }
 }
 
@@ -751,7 +1027,7 @@ async function loadStats() {
       tr.innerHTML = '<td class="mono">' + escapeHtml(m) + '</td><td>' + (v.ok || 0) + '</td><td>' + (v.fail || 0) + '</td><td>' + (v['429'] || 0) + '</td><td>' + avg + '</td>';
       mb.appendChild(tr);
     }
-    if (!hasModels) mb.innerHTML = '<tr><td colspan="5" class="empty">No model statistics yet.</td></tr>';
+    if (!hasModels) mb.innerHTML = '<tr><td colspan="5" class="empty">' + i18n('no_model_statistics_yet') + '</td></tr>';
     let hasKeys = false;
     for (const [k, v] of Object.entries(keys)) {
       hasKeys = true;
@@ -759,15 +1035,15 @@ async function loadStats() {
       tr.innerHTML = '<td class="mono">' + escapeHtml(k) + '</td><td>' + (v.ok || 0) + '</td><td>' + (v.fail || 0) + '</td><td>' + (v['429'] || 0) + '</td>';
       kb.appendChild(tr);
     }
-    if (!hasKeys) kb.innerHTML = '<tr><td colspan="4" class="empty">No key statistics yet.</td></tr>';
+    if (!hasKeys) kb.innerHTML = '<tr><td colspan="4" class="empty">' + i18n('no_key_statistics_yet') + '</td></tr>';
   } catch (e) {
-    document.getElementById('stats-models').innerHTML = '<tr><td colspan="5" class="error">Error: ' + escapeHtml(e.message) + '</td></tr>';
+    document.getElementById('stats-models').innerHTML = '<tr><td colspan="5" class="error">' + i18n('error') + ': ' + escapeHtml(e.message) + '</td></tr>';
   }
 }
 
 function escapeHtml(s) {
   if (s == null) return '';
-  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'': ''' })[c]);
 }
 
 // ---------- Chat ----------
@@ -871,7 +1147,7 @@ async function sendChat() {
     }
   } catch (e) {
     chatError.textContent = e.message;
-    addChat('system', 'Error: ' + e.message);
+    addChat('system', i18n('error') + ': ' + e.message);
   } finally {
     setSending(false);
   }

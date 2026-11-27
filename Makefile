@@ -1,15 +1,17 @@
 # Makefile — NVIDIA Free-Model Router
 #
 # Usage:
+#   make                # show this help menu
 #   make setup          # create venv + install dependencies
 #   make test           # run the test suite
 #   make run            # run zrouter.py (chat example)
 #   make serve          # run the OpenAI-compatible proxy
 #   make lint           # ruff check + format check
-#   make format         # ruff format
-#   make clean          # remove venv and caches
+#   make format         # ruff format (in place)
+#   make clean          # remove .venv, build/, dist/ and Python caches
 #   make all            # setup + lint + test
 #   make build          # default build (setup + lint + test + exe)
+#   make build:all      # build all variants (exe + gui + web + desktops + dev + prod + ent + zbot)
 #   make build:gui      # build GUI executable (PyInstaller)
 #   make build:tui      # build TUI package
 #   make build:web      # build web deployment package
@@ -21,7 +23,7 @@
 #   make build:exe:win  # build Windows .exe (requires Wine)
 #   make build:android  # build Android package (requires Buildozer)
 #   make build:ios      # build iOS package (requires BeeWare/Kivy, macOS)
-#   make build:zrouter   # build zrouter CLI entry point
+#   make build:zrouter  # build zrouter CLI entry point
 #   make gui            # launch zrouter GUI
 #   make install:zrouter # install zrouter to $(PREFIX)/bin
 #   make uninstall:zrouter # remove zrouter from $(PREFIX)/bin
@@ -33,7 +35,7 @@ PYTHON ?= python3
 VENV := .venv
 VENV_PYTHON := $(VENV)/bin/python
 VENV_PIP := $(VENV)/bin/pip
-REQUIREMENTS := requests pytest ruff flask gunicorn
+REQUIREMENTS := requests pytest ruff flask gunicorn pytest-cov
 PREFIX ?= /usr/local
 DIST := dist
 BUILD := build
@@ -44,61 +46,61 @@ BUILD := build
 
 all: setup lint test
 
-help: ## Show this help
-	@echo "NVIDIA Free-Model Router — Make targets:"
-	@echo
+help: ## Show this help menu
+	@echo "NVIDIA Free-Model Router — Make Help"
+	@echo "========================================"
+	@echo ""
 	@echo "Core targets:"
-	@echo "  make setup        create virtualenv and install dependencies"
-	@echo "  make install      install/upgrade dependencies (requires existing venv)"
+	@echo "  make setup        create virtual environment and install dependencies"
 	@echo "  make test         run the pytest suite"
-	@echo "  make lint         ruff check + ruff format --check"
-	@echo "  make format       ruff format (in place)"
-	@echo "  make clean        remove .venv, build/, dist/ and Python caches"
-	@echo "  make all          setup + lint + test"
-	@echo
+	@echo "  make lint         run ruff check and format check"
+	@echo "  make format       format code with ruff (in place)"
+	@echo "  make clean        remove build artifacts and Python caches"
+	@echo "  make all          run setup + lint + test"
+	@echo ""
 	@echo "Run targets:"
 	@echo "  make run          run zrouter.py chat (requires NVIDIA_API_KEYS)"
 	@echo "  make serve        run the OpenAI-compatible proxy (requires keys)"
 	@echo "  make gui          launch zrouter GUI"
-	@echo
-	@echo "Model/Provider targets:"
+	@echo ""
+	@echo "Model & Provider targets:"
 	@echo "  make models       list catalog models with free/paid/provider metadata"
 	@echo "  make models-free  list only free models"
 	@echo "  make models-paid  list only paid models"
+	@echo "  make discover     auto-discover models from NVIDIA API"
+	@echo "  make probe        probe all allowlisted models for status and latency"
+	@echo "  make stats        show per-model and per-key statistics"
 	@echo "  make providers    list configured providers with API key counts and base URLs"
-	@echo "  make discover     auto-discover models from NVIDIA API and update models.json"
-	@echo
+	@echo ""
 	@echo "Build targets:"
-	@echo "  make build        default build (setup + lint + test + exe)"
-	@echo "  make build:all    build all variants (exe + gui + web + desktops + dev + prod + ent + zbot)"
-	@echo "  make build:exe    build native CLI executable using PyInstaller"
-	@echo "  make build:exe:win build Windows .exe (requires Wine)"
-	@echo "  make build:gui    build GUI executable using PyInstaller"
-	@echo "  make build:tui    build TUI package"
-	@echo "  make build:zbot   build cross-platform zbot CLI executable"
-	@echo "  make build:web    build web deployment package"
-	@echo "  make build:web:all build all web variants (dev + prod + ent)"
-	@echo "  make build:web:dev build web dev package (hot-reload, debug)"
-	@echo "  make build:web:prod build web production package (gunicorn, optimized)"
-	@echo "  make build:web:ent build web enterprise package (all features)"
-	@echo "  make build:web:start  start the web server from dist/web/"
-	@echo "  make build:deploy     full deploy: build web package + start server"
-	@echo "  make build:desktops build desktop application packages (.desktop files)"
-	@echo "  make build:dev    development build with dev tools"
-	@echo "  make build:prod   production-optimized build (PyInstaller onefile)"
-	@echo "  make build:ent    enterprise build with all features"
-	@echo "  make build:android build Android package (requires Buildozer)"
-	@echo "  make build:ios    build iOS package (requires BeeWare/Kivy, macOS)"
-	@echo
+	@echo "  make build                default build (setup + lint + test + exe)"
+	@echo "  make build:all            build all variants (exe + gui + web + desktops + dev + prod + ent + zbot)"
+	@echo "  make build:exe            build native CLI executable using PyInstaller"
+	@echo "  make build:exe:win        build Windows .exe (requires Wine)"
+	@echo "  make build:gui            build GUI executable using PyInstaller"
+	@echo "  make build:tui            build TUI package"
+	@echo "  make build:zbot           build cross-platform zbot CLI executable"
+	@echo "  make build:web            build web deployment package"
+	@echo "  make build:web:all        build all web variants (dev + prod + ent)"
+	@echo "  make build:web:dev        build web dev package (hot-reload, debug)"
+	@echo "  make build:web:prod       build web production package (gunicorn, optimized)"
+	@echo "  make build:web:ent        build web enterprise package (all features)"
+	@echo "  make build:desktops       build desktop application packages (.desktop files)"
+	@echo "  make build:dev            development build with dev tools"
+	@echo "  make build:prod           production-optimized build (PyInstaller onefile)"
+	@echo "  make build:ent            enterprise build with all features"
+	@echo "  make build:android        build Android package (requires Buildozer)"
+	@echo "  make build:ios            build iOS package (requires BeeWare/Kivy, macOS)"
+	@echo "  make build:zrouter        build zrouter CLI entry point"
+	@echo ""
 	@echo "zrouter targets:"
-	@echo "  make build:zrouter  build zrouter CLI entry point"
 	@echo "  make build:packages   build Python packages (wheel + sdist)"
 	@echo "  make build:wheel      build wheel distribution"
 	@echo "  make build:sdist      build source distribution"
-	@echo "  make install:zrouter install zrouter to $(PREFIX)/bin"
+	@echo "  make install:zrouter  install zrouter to $(PREFIX)/bin"
 	@echo "  make uninstall:zrouter remove zrouter from $(PREFIX)/bin"
-	@echo "  make zrouter        alias for build:zrouter"
-	@echo
+	@echo "  make zrouter          alias for build:zrouter"
+	@echo ""
 	@echo "Docker targets:"
 	@echo "  make docker:build   build Docker image"
 	@echo "  make docker:run     run Docker container"
@@ -122,7 +124,7 @@ install-deps: ## Install / upgrade pip and project dependencies
 
 test: ## Run the test suite
 	@echo "==> Running tests"
-	$(VENV_PYTHON) -m pytest -v
+	$(VENV_PYTHON) -m pytest -v --cov=zrouter --cov=zrouter_core --cov=zrouter_bot --cov=zrouter_bot_models --cov=zrouter_bot_storage --cov=zrouter_runtime --cov=web_app --cov-report=term-missing
 
 models: ## List catalog models with free/paid/provider metadata
 	@echo "==> Listing catalog models"
@@ -142,6 +144,14 @@ discover: ## Auto-discover models from NVIDIA API and update models.json (requir
 
 models-update: discover ## Alias for discover (update the models catalog)
 
+probe: ## Probe all allowlisted models for status and latency
+	@echo "==> Probing models"
+	$(VENV_PYTHON) zrouter.py probe
+
+stats: ## Show per-model and per-key statistics
+	@echo "==> Showing statistics"
+	$(VENV_PYTHON) zrouter.py stats
+
 providers: ## List configured providers with API key counts and base URLs
 	@echo "==> Listing configured providers"
 	$(VENV_PYTHON) zrouter.py providers
@@ -156,12 +166,12 @@ serve: ## Run the OpenAI-compatible proxy on :8000 (set keys + token first)
 
 lint: ## Run ruff check and ruff format --check
 	@echo "==> Linting with ruff"
-	$(VENV_PYTHON) -m ruff check zrouter.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py zrouter-gui.py zrouter-tui.py
-	$(VENV_PYTHON) -m ruff format --check zrouter.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py zrouter-gui.py zrouter-tui.py
+	$(VENV_PYTHON) -m ruff check zrouter.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py web_app.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py zrouter-gui.py zrouter-tui.py
+	$(VENV_PYTHON) -m ruff format --check zrouter.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py web_app.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py zrouter-gui.py zrouter-tui.py
 
 format: ## Format code with ruff
 	@echo "==> Formatting with ruff"
-	$(VENV_PYTHON) -m ruff format zrouter.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py zrouter-gui.py
+	$(VENV_PYTHON) -m ruff format zrouter.py zrouter_core.py zrouter_bot.py zrouter_bot_models.py zrouter_bot_storage.py zrouter_runtime.py web_app.py test_zrouter.py test_zrouter_core.py test_zrouter_bot.py test_zrouter_bot_models.py test_zrouter_bot_storage.py test_zrouter_runtime.py zrouter-gui.py
 
 clean: ## Remove virtualenv, build artifacts, dist, and Python caches
 	@echo "==> Cleaning"
