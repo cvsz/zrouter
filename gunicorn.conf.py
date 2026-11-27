@@ -33,18 +33,20 @@ keepalive = 5
 accesslog = "-"
 errorlog = "-"
 loglevel = os.environ.get("WEB_LOG_LEVEL", "info")
-access_log_format = '%(h)s %(r)s %(s)s %(b)s %(D)sµs'
+access_log_format = "%(h)s %(r)s %(s)s %(b)s %(D)sµs"
 
 # --------------------------------------------------------------------------- #
 # Process naming
 # --------------------------------------------------------------------------- #
 proc_name = "zrouter-web"
 
+
 # --------------------------------------------------------------------------- #
 # Server hooks
 # --------------------------------------------------------------------------- #
 def on_starting(server):
     server.log.info("zrouter-web starting (workers=%d, threads=%d)", workers, threads)
+
 
 def on_exit(server):
     server.log.info("zrouter-web shutting down")

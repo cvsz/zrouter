@@ -2,18 +2,17 @@
 
 > **Enterprise-grade OpenAI-compatible proxy/router สำหรับ NVIDIA hosted NIM endpoints** แบบ local-first, self-hosted และ hybrid cloud
 
-[![CI](https://github.com/cvsz/zrouter/actions/workflows/ci.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/ci.yml)
+[![CI](https://github.com/cvsz/zrouter/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/ci-cd.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-ghcr.io-blue.svg)](https://github.com/cvsz/zrouter/pkgs/container/zrouter)
-[![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen.svg)](https://github.com/cvsz/zrouter/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/cvsz/zrouter)](https://github.com/cvsz/zrouter/releases)
 [![Final Report](https://img.shields.io/badge/Report-Final--Report.md-blue)](Final-Report.md)
 
 ![zrouter Social Preview](https://repository-images.githubusercontent.com/1298675090/168568c9-a175-4d82-9733-955d6d7bf7b4)
 
 **เวอร์ชันปัจจุบัน:** `1.0.0`  
-**สถานะ:** **Production-Grade Ready** — free-only allowlist, multi-key rotation, auto routing, streaming, cache, stats และ OpenAI-compatible proxy
+**สถานะ:** `1.0.0` — free-only allowlist, multi-key rotation, auto routing, streaming, cache, stats และ OpenAI-compatible proxy. ดูรายละเอียดการตรวจสอบใน [Final-Report.md](Final-Report.md).
 
 ---
 
@@ -21,17 +20,15 @@
 
 | Check | Badge | Status |
 |-------|-------|--------|
-| CI / Build | [![CI](https://github.com/cvsz/zrouter/actions/workflows/ci.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/ci.yml) | Passing |
-| Security Scan | [![Security Scan](https://github.com/cvsz/zrouter/actions/workflows/security-scan.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/security-scan.yml) | Passing |
-| CodeQL | [![CodeQL](https://github.com/cvsz/zrouter/actions/workflows/codeql.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/codeql.yml) | Passing |
-| Release Gate | [![Release Gate](https://github.com/cvsz/zrouter/actions/workflows/release-gate.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/release-gate.yml) | Passing |
-| Coverage | [![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen.svg)](https://github.com/cvsz/zrouter/actions/workflows/ci.yml) | **100%** |
+| CI / Build | [![CI](https://github.com/cvsz/zrouter/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/ci-cd.yml) | Configured |
 | License | [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE) | MIT |
 | Python | [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/) | 3.10+ |
 | Docker | [![Docker ghcr.io](https://img.shields.io/badge/Docker-ghcr.io-blue.svg)](https://github.com/cvsz/zrouter/pkgs/container/zrouter) | Available |
 | Final Report | [![Final Report](https://img.shields.io/badge/Report-Final--Report.md-blue)](Final-Report.md) | Complete |
 
 ---
+
+> **Note:** Security Scan, CodeQL, Release Gate, and Coverage badges were removed because the corresponding GitHub Actions workflows do not exist in this repository and coverage has not been measured. These can be added when the corresponding CI jobs are implemented.
 
 ## ภาพรวม (Executive Summary)
 

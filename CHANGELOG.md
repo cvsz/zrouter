@@ -19,11 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Persistent Stats**: Per model / per key counters (ok, fail, 429, latency)
 - **OpenAI-Compatible Proxy**: Full /v1/chat/completions, /v1/embeddings endpoints
 - **CLI**: `chat`, `list`, `probe`, `stats`, `keys`, `serve`, `models`, `discover`, `providers`
-- **GUI**: Tkinter-based desktop GUI (`zcloud-gui.py`)
-- **TUI**: Textual-based terminal UI (`zcloud-tui.py`)
+- **GUI**: Tkinter-based desktop GUI (`zrouter-gui.py`)
+- **TUI**: Textual-based terminal UI (`zrouter-tui.py`)
 - **Models Catalog**: 40 models across 14 providers with free/paid metadata
 - **Provider Configuration**: provider.json for multi-provider API key management
-- **CLI Executable**: `zcloud` shell script entry point
+- **CLI Executable**: `zrouter` shell script entry point
 
 ### Features Implemented
 

@@ -1429,7 +1429,7 @@ def make_handler(router: FreeRouter, token: str | None):
                 self._err(404, "not found")
             except RouterError as e:
                 self._err(e.status, e.message)
-            except Exception as e:  # pragma: no cover – safety net
+            except Exception:  # pragma: no cover – safety net
                 log.exception("unhandled")
                 self._err(500, "internal server error")
 

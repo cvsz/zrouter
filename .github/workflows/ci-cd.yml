@@ -35,13 +35,13 @@ jobs:
           .venv/bin/pip install requests pytest ruff pyinstaller
 
       - name: Run lint checks
-        run: .venv/bin/make lint
+        run: make lint
 
       - name: Run tests
-        run: .venv/bin/make test
+        run: make test
 
       - name: Build native executable
-        run: .venv/bin/make build:exe
+        run: make build:exe
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -74,7 +74,7 @@ jobs:
           .venv/bin/pip install requests pytest ruff pyinstaller
 
       - name: Build all variants
-        run: .venv/bin/make build:all
+        run: make build:all
 
       - name: Upload release artifacts
         uses: actions/upload-release-asset@v4

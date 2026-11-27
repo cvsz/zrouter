@@ -242,9 +242,11 @@ def chat_completions() -> Any:
 
     except RouterError as e:
         return jsonify({"error": {"message": e.message, "code": e.status}}), e.status
-    except Exception as exc:  # pragma: no cover – safety net
+    except Exception:  # pragma: no cover – safety net
         log.exception("unhandled error in /v1/chat/completions")
-        return jsonify({"error": {"message": "internal server error", "code": 500}}), 500
+        return jsonify(
+            {"error": {"message": "internal server error", "code": 500}}
+        ), 500
 
 
 @app.post("/v1/embeddings")
@@ -259,9 +261,11 @@ def embeddings() -> Any:
         return jsonify(r.embeddings(body)), 200
     except RouterError as e:
         return jsonify({"error": {"message": e.message, "code": e.status}}), e.status
-    except Exception as exc:  # pragma: no cover
+    except Exception:  # pragma: no cover
         log.exception("unhandled error in /v1/embeddings")
-        return jsonify({"error": {"message": "internal server error", "code": 500}}), 500
+        return jsonify(
+            {"error": {"message": "internal server error", "code": 500}}
+        ), 500
 
 
 # --------------------------------------------------------------------------- #
