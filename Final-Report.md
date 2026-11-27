@@ -212,12 +212,13 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 
 | Item | Value |
 |------|-------|
-| Branch | `codex/enterprise-production-readiness-v2` |
+| Branch | `codex/enterprise-production-hardening` |
 | Base | `main` |
 | Commit type | Signed (`git commit -S`) |
 | Signing key | C3CDE65F606F7BF0 (nistp256, cvsz) |
 | Creator account | cvsz |
 | Reviewer account | policedbc (separate, required for approval) |
+| Commit SHA | 03d19737a6d6a5ad5377143bdd1a649104c03936 |
 
 ---
 
@@ -225,10 +226,10 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 
 | Item | Value |
 |------|-------|
-| PR title | Enterprise Production Readiness Improvements |
-| PR URL | https://github.com/cvsz/zrouter/pull/16 |
-| Commit SHA | d8a97f804ef4a1124deb2c2ece99e764fd8340e3 |
-| Merge commit | dd1192aedc01fd92f28360e639a71ce047a27832 |
+| PR title | Enterprise Production Hardening Improvements |
+| PR URL | https://github.com/cvsz/zrouter/pull/17 |
+| Commit SHA | 03d19737a6d6a5ad5377143bdd1a649104c03936 |
+| Merge commit | 6743972 |
 
 ---
 
@@ -239,7 +240,7 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 | Reviewer | policedbc (separate from creator cvsz) |
 | Review type | Independent (does not rely on creator's audit) |
 | Approval | APPROVED by `policedbc` (separate from creator `cvsz`) |
-| Review commit | PRR_kwDOVvUdgs8AAAABayPZWg |
+| Review commit | PRR_kwDOVvUdgs8AAAABaybhPg |
 
 ---
 
@@ -259,10 +260,9 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 
 | Item | Status |
 |------|--------|
-| Merge | MERGED via `gh pr merge --merge --delete-branch` (PR #16) |
-| Post-merge verification | PASSED (lint PASS, 88 tests PASS on `main`) |
-| Merge commit | dd1192aedc01fd92f28360e639a71ce047a27832 |
-| Merge commit parents | 5d1b8f4 (main), d8a97f8 (feature branch) |
+| Merge | MERGED via `gh pr merge --merge --delete-branch` (PR #17) |
+| Post-merge verification | PASSED (lint PASS, 95 tests PASS on `main`) |
+| Merge commit | 6743972 |
 | Branch deleted | Yes (`--delete-branch`) |
 
 ---
@@ -273,19 +273,19 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 
 All code defects have been fixed and verified:
 - `make lint`: PASS (0 ruff errors, 0 format issues)
-- `make test`: 88 passed, 31 subtests passed, 0 failed
-- Remaining issues F-012, F-013, F-014 resolved
+- `make test`: 95 passed, 31 subtests passed, 0 failed
+- Findings F-015 through F-021 resolved
 - F-010 documented and deferred (architectural technical debt)
 
 All release pipeline steps completed:
-- [x] Signed commit created (d8a97f8, GPG verified)
-- [x] Branch pushed (codex/enterprise-production-readiness-v2)
-- [x] PR created (#16)
+- [x] Signed commit created (03d1973, GPG verified)
+- [x] Branch pushed (codex/enterprise-production-hardening)
+- [x] PR created (#17)
 - [x] Independent review by `policedbc` completed and approved
 - [x] Approval verified
 - [x] Merge completed via `gh pr merge --merge --delete-branch`
-- [x] Post-merge verification passes on `main` (lint PASS, 88 tests PASS)
+- [x] Post-merge verification passes on `main` (lint PASS, 95 tests PASS)
 
 Signed-off: Principal Software Engineer  
 Date: 2026-11-28  
-Status: RELEASED — PR #16 merged into main
+Status: RELEASED — PR #17 merged into main
