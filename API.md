@@ -218,9 +218,7 @@ client = OpenAI(
 
 response = client.chat.completions.create(
     model="auto",
-    messages=[
-        {"role": "user", "content": "write a regex for emails"}
-    ],
+    messages=[{"role": "user", "content": "write a regex for emails"}],
     max_tokens=1024,
 )
 
