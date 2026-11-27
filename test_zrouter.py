@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Unit tests for /mnt/zdata/nvidia/zrouter.py
 Run with:  cd /mnt/zdata/nvidia && pytest test_zrouter.py -v
@@ -310,6 +309,47 @@ class TestSettings(unittest.TestCase):
             if os.path.exists(path):
                 os.remove(path)
 
+    def test_load_rejects_invalid_routes_without_partial_mutation(self):
+        path = os.path.join(os.path.dirname(__file__), "test_cfg_bad_routes.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"rpm": 10, "routes": {"code": "not-a-list"}}, f)
+        try:
+            settings = Settings()
+            original_routes = {
+                name: list(patterns) for name, patterns in settings.routes.items()
+            }
+            with self.assertRaises(ValueError):
+                settings.load(path)
+            self.assertEqual(settings.rpm, 35)
+            self.assertEqual(settings.routes, original_routes)
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+
+    def test_load_rejects_out_of_range_rate_limit(self):
+        path = os.path.join(os.path.dirname(__file__), "test_cfg_bad_rpm.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"rpm": 0}, f)
+        try:
+            settings = Settings()
+            with self.assertRaises(ValueError):
+                settings.load(path)
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+
+    def test_load_rejects_remote_plaintext_provider_url(self):
+        path = os.path.join(os.path.dirname(__file__), "test_cfg_bad_url.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"base_url": "http://provider.example.test/v1"}, f)
+        try:
+            settings = Settings()
+            with self.assertRaises(ValueError):
+                settings.load(path)
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+
 
 class TestLoadKeys(unittest.TestCase):
     def test_load_keys_from_env(self):
@@ -460,6 +500,33 @@ class TestPlan(unittest.TestCase):
     def test_plan_exact_route_name(self):
         _cands, label = self.r.plan({"messages": []}, model="vision")
         self.assertEqual(label, "route:vision")
+
+    def test_allowed_requires_exact_id_or_explicit_glob(self):
+        self.r._available = ["gemma-3-27b-preview"]
+        self.r.available_ids.return_value = self.r._available
+        self.assertEqual(self.r.allowed(["gemma-3-27b"]), [])
+        self.assertEqual(
+            self.r.allowed(["gemma-3-*"]),
+            ["gemma-3-27b-preview"],
+        )
+
+    def test_plan_does_not_fall_back_to_unlisted_live_models(self):
+        self.r._available = ["paid-model-not-in-routes"]
+        self.r.available_ids.return_value = self.r._available
+        with self.assertRaises(RouterError) as ctx:
+            self.r.plan(
+                {"messages": [{"role": "user", "content": "hello"}]},
+                route="fast",
+            )
+        self.assertEqual(ctx.exception.status, 404)
+
+    def test_discovery_never_infers_free_pricing(self):
+        catalog = zrouter.ModelsCatalog.discover_from_api(
+            ["nvidia/example-new-model"], deny=[]
+        )
+        model = catalog.get("nvidia/example-new-model")
+        self.assertFalse(model["free"])
+        self.assertEqual(model["pricing_status"], "unverified")
 
 
 class TestChatJsonAndChat(unittest.TestCase):

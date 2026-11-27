@@ -5,6 +5,26 @@ All notable changes to zrouter will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- Fail closed when live model discovery cannot match an explicitly configured route allowlist; no fallback to arbitrary live models.
+- Do not infer a model's free/paid status from its name or route classification.
+- Require exact model IDs or explicit glob patterns for route matching.
+- Validate provider base URLs and reject non-loopback plaintext HTTP, embedded credentials, query strings, and fragments.
+
+### Changed
+- Extract 3 bot enums and 17 serializable domain models into `zrouter_bot_models.py`; keep their original `zrouter_bot` import paths as compatibility re-exports.
+- Extract `Vault`, `Memory`, and bot-home storage paths into `zrouter_bot_storage.py`; preserve the original `zrouter_bot` import surface.
+- Extract `RateLimiter`, `Stats`, `TTLCache`, and `mask` into `zrouter_runtime.py`; preserve their original `zrouter` import paths.
+- Include the extracted module in Python packaging, Docker images, Makefile source bundles, lint, and regression tests.
+- Introduce a dedicated provider registry module while preserving the existing ProviderConfig compatibility surface.
+- Validate provider metadata before it is accepted by the router.
+- Expand the test target to discover all test modules and include provider-registry checks.
+- Correct the CI Make invocation and reduce the unit-test job token to read-only permissions.
+- Add CodeQL analysis for Python and GitHub Actions on main-branch pushes and pull requests.
+- Restrict POSIX bot-vault directory/file permissions to 0700/0600, use atomic writes, reject symlinks, and fail closed on corrupted vault data; encryption remains a documented limitation.
+
 ## [1.0.0] - 2026-11-15
 
 ### Added

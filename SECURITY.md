@@ -15,7 +15,7 @@ We take the security of zrouter seriously. If you discover a security vulnerabil
 
 Please do not report security vulnerabilities through public GitHub issues.
 
-Instead, please report them via email to: security@cvsz.local
+Instead, use GitHub's private vulnerability reporting feature if it is enabled for this repository. If it is unavailable, contact the repository owner privately through an authenticated channel. Do not disclose vulnerabilities in public issues.
 
 Include as much of the following information as possible to help us better understand and resolve the issue:
 
@@ -70,3 +70,9 @@ zrouter supports multiple LLM providers:
 4. **Limit key scope** - Use API keys with the minimum required permissions
 5. **Rotate keys regularly** - Rotate API keys periodically
 6. **Monitor usage** - Check stats endpoint for unusual activity
+
+## Known limitations
+
+- The current `zrouter_bot.Vault` implementation stores credential values as ordinary JSON and is **not encrypted at rest**. The vault file is restricted to mode `0600` and its directory to `0700` on POSIX systems, but this does not protect against the same OS user, root, or a compromised process. Do not use it as a substitute for an OS-backed secret manager or store high-value production credentials there.
+- Local bot memory, routine, and skill stores are also JSON files. Treat access to the bot data directory as access to its contents.
+- Model discovery reports upstream availability only. Newly discovered models are not considered free until explicitly curated in the model catalog and route allowlist.

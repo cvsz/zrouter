@@ -97,10 +97,10 @@ The full codebase was audited, including:
 Command: .venv/bin/python -m pytest test_zrouter.py -v
 Environment: Python 3.14.4, .venv at /mnt/zdata/zrouter/.venv
 Exit code: 0
-Result: 64 passed, 0 failed
+Result: 88 passed, 31 subtests passed, 0 failed
 ```
 
-Test categories covered: mask, rate limiter, key thread safety, TTL cache, stats, classify/images, settings, load keys, free router init, probe, plan, chat JSON, read body, proxy server, security, cache behavior.
+Test categories covered: mask, rate limiter, key thread safety, TTL cache, stats, classify/images, settings, load keys, free router init, probe, plan, chat JSON, read body, proxy server, security, cache behavior, provider registry, runtime compatibility.
 
 **Note:** Coverage has not been measured (no `pytest-cov` installed). The previous claim of "100% coverage" was unverified and has been removed.
 
@@ -132,14 +132,14 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 | Docker healthcheck auth | FIXED (ROUTER_TOKEN now set as ENV) |
 | No secrets committed | Verified (.env, .env.web, provider.json are gitignored) |
 | Dependency vulnerabilities | Not scanned (no dependency scanner available in this environment) |
-| SAST/DAST | Not run (no CodeQL, Semgrep, Bandit available in this environment) |
+| SAST/DAST | CodeQL configured (`.github/workflows/codeql.yml`); Semgrep/Bandit not run |
 
 ---
 
 ## 9. Documentation Changes
 
 - `Final-Report.md`: Rewritten with accurate findings (replaced inaccurate "zero issues" report)
-- `README.md`: Fixed CI workflow badge reference; removed unverified Security Scan/CodeQL/Release Gate/Coverage badges; replaced "Production-Grade Ready" with accurate status
+- `README.md`: Fixed CI workflow badge reference; added CodeQL badge; removed unverified Security Scan/Release Gate/Coverage badges; replaced "Production-Grade Ready" with accurate status
 - `CHANGELOG.md`: Fixed `zcloud-*` → `zrouter-*` naming references
 
 ---
@@ -150,7 +150,7 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 |----|----------|-------------|-------------|
 | F-010 | Low | `zrouter.py` imports from unrelated `zrouter_bot` module (tight coupling, violates separation of concerns) | Documented; refactoring is a large architectural change with regression risk, deferred |
 | — | Informational | Coverage not measured (no `pytest-cov`) | Can add `pytest-cov` and coverage gate to CI |
-| — | Informational | No SAST/DAST/dependency scanning in CI | Can add security-scan.yml, codeql.yml workflows |
+| — | Informational | No SAST/DAST/dependency scanning in CI | CodeQL configured (codeql.yml); can add security-scan.yml for Semgrep/Bandit |
 | — | Informational | `pyproject.toml` defines `zcloud = "zrouter:main"` script entry point (naming inconsistent with `zrouter` script) | Minor naming inconsistency, low impact |
 
 ---

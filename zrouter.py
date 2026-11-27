@@ -50,7 +50,7 @@ Use only keys that belong to you / your team.
 from __future__ import annotations
 
 import argparse
-import collections
+import fnmatch
 import hashlib
 import hmac
 import json
@@ -84,6 +84,13 @@ from zrouter_bot import (
     VaultEntry,
     get_bot,
 )
+from zrouter_core import ProviderRegistry, validate_base_url
+from zrouter_runtime import (
+    RateLimiter,
+    Stats,
+    TTLCache,
+    mask,
+)
 
 log = logging.getLogger("nvrouter")
 
@@ -116,7 +123,6 @@ DEFAULT_COOLDOWN_429 = 30
 DEFAULT_COOLDOWN_ERR = 60
 PAIR_BACKOFF_CAP = 900
 RETRY_AFTER_CAP = 300
-STATS_DIRTY_THRESHOLD = 20
 MODEL_LIST_TTL = 900
 
 DEFAULT_ROUTES: dict[str, list[str]] = {
@@ -191,32 +197,7 @@ class RouterError(Exception):
         self.message = message
 
 
-def mask(key: str) -> str:
-    """Return a masked representation of an API key for logging / display."""
-    if not key:
-        return "***"
-    if len(key) <= 16:
-        return "***"
-    return key[:9] + "..." + key[-4:]
-
-
 # --------------------------------------------------------------------------- helpers
-
-
-class RateLimiter:
-    """Per-key token-bucket style rate limiter (requests per minute)."""
-
-    def __init__(self, rpm: int) -> None:
-        self.min_interval = 60.0 / max(rpm, 1)
-        self.last = 0.0
-        self.lock = threading.Lock()
-
-    def wait(self) -> None:
-        with self.lock:
-            delay = self.last + self.min_interval - time.monotonic()
-            if delay > 0:
-                time.sleep(delay)
-            self.last = time.monotonic()
 
 
 class Key:
@@ -332,100 +313,7 @@ def load_keys(
 # --------------------------------------------------------------------------- stats
 
 
-class Stats:
-    """Per-model / per-key counters, persisted atomically as JSON."""
-
-    def __init__(self, path: str | None = None) -> None:
-        home = os.environ.get(
-            "NVIDIA_ROUTER_HOME", os.path.expanduser("~/.nvidia_free_router")
-        )
-        self.path = path or os.path.join(home, "stats.json")
-        self.lock = threading.Lock()
-        self.dirty = 0
-        self.data: dict[str, Any] = {"models": {}, "keys": {}}
-        try:
-            with open(self.path, encoding="utf-8") as f:
-                loaded = json.load(f)
-                if isinstance(loaded, dict):
-                    self.data = loaded
-        except (OSError, ValueError):
-            pass
-
-    def rec(
-        self, model: str, key_label: str, outcome: str, latency: float | None = None
-    ) -> None:
-        if outcome not in ("ok", "fail", "429"):
-            raise ValueError(f"invalid outcome: {outcome!r}")
-        with self.lock:
-            m = self.data["models"].setdefault(
-                model, {"ok": 0, "fail": 0, "429": 0, "lat_sum": 0.0}
-            )
-            k = self.data["keys"].setdefault(key_label, {"ok": 0, "fail": 0, "429": 0})
-            m[outcome] += 1
-            k[outcome] += 1
-            if outcome == "ok" and latency is not None:
-                m["lat_sum"] += latency
-            self.dirty += 1
-            if self.dirty >= STATS_DIRTY_THRESHOLD:
-                self._save()
-
-    def _save(self) -> None:
-        try:
-            directory = os.path.dirname(self.path)
-            if directory:
-                os.makedirs(directory, exist_ok=True)
-            tmp = self.path + ".tmp"
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(self.data, f, indent=1)
-            os.replace(tmp, self.path)
-            self.dirty = 0
-        except OSError:
-            log.exception("failed to persist stats to %s", self.path)
-
-    def flush(self) -> None:
-        with self.lock:
-            if self.dirty:
-                self._save()
-
-    def snapshot(self) -> dict[str, Any]:
-        with self.lock:
-            return json.loads(json.dumps(self.data))
-
-
 # --------------------------------------------------------------------------- cache
-
-
-class TTLCache:
-    """Thread-safe TTL + LRU cache with bounded size."""
-
-    def __init__(self, size: int, ttl: int) -> None:
-        self.size = max(size, 0)
-        self.ttl = max(ttl, 0)
-        self.d: collections.OrderedDict[str, tuple[float, Any]] = (
-            collections.OrderedDict()
-        )
-        self.lock = threading.Lock()
-
-    def get(self, k: str) -> Any | None:
-        with self.lock:
-            v = self.d.get(k)
-            if not v:
-                return None
-            expiry, val = v
-            if time.time() > expiry:
-                del self.d[k]
-                return None
-            self.d.move_to_end(k)
-            return val
-
-    def put(self, k: str, val: Any) -> None:
-        if self.ttl <= 0:
-            return
-        with self.lock:
-            self.d[k] = (time.time() + self.ttl, val)
-            self.d.move_to_end(k)
-            while len(self.d) > self.size:
-                self.d.popitem(last=False)
 
 
 # --------------------------------------------------------------------------- prompt analysis
@@ -493,8 +381,8 @@ class Settings:
     """Runtime configuration with type-validated overrides from JSON config."""
 
     def __init__(self) -> None:
-        self.base_url: str = os.environ.get(
-            "NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"
+        self.base_url: str = validate_base_url(
+            os.environ.get("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
         )
         self.routes: dict[str, list[str]] = {
             k: list(v) for k, v in DEFAULT_ROUTES.items()
@@ -520,33 +408,72 @@ class Settings:
             data = json.load(f)
         if not isinstance(data, dict):
             raise TypeError("config root must be a JSON object")
-        for k, v in data.items():
-            if k == "routes":
-                if not isinstance(v, dict):
+
+        updates: dict[str, Any] = {}
+        integer_bounds = {
+            "rpm": (1, 10_000),
+            "cooldown_429": (1, 86_400),
+            "cooldown_err": (1, 86_400),
+            "max_wait": (0, 3_600),
+            "timeout": (1, 600),
+            "cache_ttl": (0, 86_400),
+            "cache_size": (0, 100_000),
+        }
+        for key, value in data.items():
+            if key == "routes":
+                if not isinstance(value, dict):
                     raise ValueError("config 'routes' must be an object")
-                self.routes.update({str(kk): list(vv) for kk, vv in v.items()})
-            elif k == "deny":
-                self.deny = list(v)
-            elif k == "embed_allow":
-                self.embed_allow = list(v)
-            elif k == "rpm":
-                self.rpm = int(v)
-            elif k == "cooldown_429":
-                self.cooldown_429 = int(v)
-            elif k == "cooldown_err":
-                self.cooldown_err = int(v)
-            elif k == "max_wait":
-                self.max_wait = int(v)
-            elif k == "timeout":
-                self.timeout = int(v)
-            elif k == "cache_ttl":
-                self.cache_ttl = int(v)
-            elif k == "cache_size":
-                self.cache_size = int(v)
-            elif k == "base_url":
-                self.base_url = str(v)
+                routes = {
+                    name: list(patterns) for name, patterns in self.routes.items()
+                }
+                for name, patterns in value.items():
+                    if (
+                        not isinstance(name, str)
+                        or not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", name)
+                        or not isinstance(patterns, list)
+                        or not patterns
+                        or any(
+                            not isinstance(pattern, str)
+                            or not pattern.strip()
+                            or len(pattern) > 256
+                            or any(ord(char) < 32 for char in pattern)
+                            for pattern in patterns
+                        )
+                    ):
+                        raise ValueError(
+                            "each route must have a valid name and non-empty "
+                            "string patterns"
+                        )
+                    routes[name] = [pattern.strip() for pattern in patterns]
+                updates["routes"] = routes
+            elif key in ("deny", "embed_allow"):
+                if not isinstance(value, list) or any(
+                    not isinstance(item, str) or not item.strip() for item in value
+                ):
+                    raise ValueError(
+                        f"config '{key}' must be a list of non-empty strings"
+                    )
+                updates[key] = [item.strip() for item in value]
+            elif key in integer_bounds:
+                minimum, maximum = integer_bounds[key]
+                if (
+                    isinstance(value, bool)
+                    or not isinstance(value, int)
+                    or not minimum <= value <= maximum
+                ):
+                    raise ValueError(
+                        f"config '{key}' must be an integer in [{minimum}, {maximum}]"
+                    )
+                updates[key] = value
+            elif key == "base_url":
+                if not isinstance(value, str):
+                    raise ValueError("config 'base_url' must be a string")
+                updates[key] = validate_base_url(value)
             else:
-                log.warning("unknown config key: %s", k)
+                log.warning("unknown config key: %s", key)
+
+        for key, value in updates.items():
+            setattr(self, key, value)
 
 
 CFG = Settings()
@@ -570,24 +497,21 @@ class ProviderConfig:
         try:
             with open(self.path, encoding="utf-8") as f:
                 data = json.load(f)
-        except (OSError, ValueError):
+            registry = ProviderRegistry.from_config(data, default_base_url=CFG.base_url)
+        except FileNotFoundError:
             return
-        if not isinstance(data, dict):
+        except (OSError, ValueError, TypeError) as exc:
+            log.error(
+                "provider configuration rejected (%s); no file-based providers loaded",
+                type(exc).__name__,
+            )
             return
-        providers = data.get("providers", {})
-        if not isinstance(providers, dict):
-            return
-        for name, cfg in providers.items():
-            if not isinstance(cfg, dict):
-                continue
-            self.providers[str(name)] = {
-                "api_keys": list(cfg.get("api_keys", [])),
-                "base_url": str(cfg.get("base_url", CFG.base_url)),
-                "env_var": str(cfg.get("env_var", "")),
-            }
-            env_var = str(cfg.get("env_var", ""))
-            if env_var:
-                self._by_env[env_var] = str(name)
+        self.providers = registry.as_mapping()
+        self._by_env = {
+            definition.env_var: definition.name
+            for definition in registry.definitions
+            if definition.env_var
+        }
 
     def get(self, provider: str) -> dict[str, Any] | None:
         """Return provider config, or None if not listed."""
@@ -758,12 +682,9 @@ class ModelsCatalog:
     def _is_free(
         model_id: str, routes: list[str], deny: list[str] | None = None
     ) -> bool:
-        """A model is free if it resolves to at least one allowlisted route and is not denied."""
-        deny = deny or []
-        low = model_id.lower()
-        if any(d in low for d in deny):
-            return False
-        return bool(routes)
+        """Never infer pricing from a model ID or route classification."""
+        _ = (model_id, routes, deny)
+        return False
 
     @classmethod
     def discover_from_api(
@@ -782,7 +703,8 @@ class ModelsCatalog:
                 {
                     "id": mid,
                     "provider": providers.get(mid, cls._detect_provider(mid)),
-                    "free": cls._is_free(mid, routes, deny),
+                    "free": False,
+                    "pricing_status": "unverified",
                     "routes": routes,
                     "description": f"Auto-discovered {mid}",
                 }
@@ -809,8 +731,14 @@ class ModelsCatalog:
         # Preserve descriptions for known models; set new ones
         for m in discovered.models:
             existing = self._by_id.get(m["id"])
-            if existing and existing.get("description"):
-                m["description"] = existing["description"]
+            if existing:
+                if existing.get("description"):
+                    m["description"] = existing["description"]
+                m["free"] = existing.get("free") is True
+                m["pricing_status"] = existing.get(
+                    "pricing_status",
+                    "curated" if existing.get("free") is True else "unverified",
+                )
         self.models = discovered.models
         self._by_id = discovered._by_id
         return len(self.models)
@@ -945,18 +873,22 @@ class FreeRouter:
         return self._available or []
 
     def allowed(self, patterns: list[str], deny: bool = True) -> list[str]:
+        """Resolve exact model IDs or explicit glob patterns against live availability."""
         out: list[str] = []
         available = self.available_ids()
-        for p in patterns:
-            pl = p.lower()
-            for mid in available:
-                low = mid.lower()
+        for pattern in patterns:
+            for model_id in available:
                 if (
-                    pl in low
-                    and not (deny and any(d in low for d in CFG.deny))
-                    and mid not in out
+                    fnmatch.fnmatchcase(model_id.casefold(), pattern.casefold())
+                    and not (
+                        deny
+                        and any(
+                            item.casefold() in model_id.casefold() for item in CFG.deny
+                        )
+                    )
+                    and model_id not in out
                 ):
-                    out.append(mid)
+                    out.append(model_id)
         return out
 
     def all_allowed(self) -> list[str]:
@@ -986,19 +918,10 @@ class FreeRouter:
                 )
             cands = self.allowed(CFG.routes[route])
             label = f"route:{route}"
-            if not cands:
-                # Fall back: no route patterns matched any available model.
-                # Return any available model (filtered by deny list) so the
-                # router can still serve requests even when live model IDs
-                # don't match hardcoded route patterns.
-                cands = [
-                    m
-                    for m in self.available_ids()
-                    if not any(d in m.lower() for d in CFG.deny)
-                ]
+
         else:
             union = list(dict.fromkeys(p for v in CFG.routes.values() for p in v))
-            cands = [m for m in self.allowed(union) if name in m.lower()]
+            cands = [m for m in self.allowed(union) if m.casefold() == name.casefold()]
             label = name
         if not cands:
             raise RouterError(
@@ -1500,7 +1423,7 @@ API KEYS
   Check state with:  python zrouter.py keys
 """,
     "routes": """\
-ROUTES  (free-only allowlist; first available match wins, then falls back down the list)
+ROUTES  (free-only allowlist; exact IDs or explicit glob patterns, first available match wins)
   auto       classify the prompt automatically (default for `chat` and the proxy)
   general    everyday questions
   code       code / debugging / regex / SQL / git
@@ -1508,7 +1431,8 @@ ROUTES  (free-only allowlist; first available match wins, then falls back down t
   fast       short prompts, smallest models
   vision     messages containing images
   Model names accepted by `chat --model` and the proxy:
-    auto | free-<route> | route:<route> | any substring of an allowlisted model id (e.g. glm-4.7)
+    auto | free-<route> | route:<route> | exact allowlisted model ID (e.g. glm-4.7)
+    Config route patterns may use explicit glob syntax such as "nvidia/*-vision"
   Anything not on the allowlist is refused (HTTP 404), so paid models are never called.
   Edit routes with a config file (see: help config). See what resolves: `list`.
 """,

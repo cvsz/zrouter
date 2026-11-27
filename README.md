@@ -1,11 +1,12 @@
 # zrouter — NVIDIA Free-Model Router
 
-> **Enterprise-grade OpenAI-compatible proxy/router สำหรับ NVIDIA hosted NIM endpoints** แบบ local-first, self-hosted และ hybrid cloud
+> OpenAI-compatible proxy/router สำหรับ NVIDIA hosted NIM endpoints แบบ local-first และ self-hosted
 
 [![CI](https://github.com/cvsz/zrouter/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/ci-cd.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-ghcr.io-blue.svg)](https://github.com/cvsz/zrouter/pkgs/container/zrouter)
+[![CodeQL](https://github.com/cvsz/zrouter/actions/workflows/codeql.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/codeql.yml)
 [![Release](https://img.shields.io/github/v/release/cvsz/zrouter)](https://github.com/cvsz/zrouter/releases)
 [![Final Report](https://img.shields.io/badge/Report-Final--Report.md-blue)](Final-Report.md)
 
@@ -21,18 +22,18 @@
 | Check | Badge | Status |
 |-------|-------|--------|
 | CI / Build | [![CI](https://github.com/cvsz/zrouter/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/ci-cd.yml) | Configured |
+| CodeQL | [![CodeQL](https://github.com/cvsz/zrouter/actions/workflows/codeql.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/codeql.yml) | Configured |
 | License | [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE) | MIT |
 | Python | [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/) | 3.10+ |
-| Docker | [![Docker ghcr.io](https://img.shields.io/badge/Docker-ghcr.io-blue.svg)](https://github.com/cvsz/zrouter/pkgs/container/zrouter) | Available |
 | Final Report | [![Final Report](https://img.shields.io/badge/Report-Final--Report.md-blue)](Final-Report.md) | Complete |
 
 ---
 
-> **Note:** Security Scan, CodeQL, Release Gate, and Coverage badges were removed because the corresponding GitHub Actions workflows do not exist in this repository and coverage has not been measured. These can be added when the corresponding CI jobs are implemented.
+> **Note:** Security Scan, Release Gate, and Coverage badges were removed because the corresponding GitHub Actions workflows do not exist in this repository and coverage has not been measured. These can be added when the corresponding CI jobs are implemented.
 
 ## ภาพรวม (Executive Summary)
 
-zrouter คือ **Enterprise-grade OpenAI-compatible proxy/router** ที่ออกแบบมาให้ครอบคลุมทุกระบบใน codebase เดียว:
+zrouter คือ **OpenAI-compatible proxy/router** ที่ออกแบบมาให้ครอบคลุมทุกระบบใน codebase เดียว:
 
 - **CLI** — คำสั่งบรรทัดสำหรับ chat, list, probe, stats, keys, serve, models, discover, providers
 - **GUI** — Tkinter-based desktop GUI (`zrouter-gui.py`)
@@ -106,6 +107,8 @@ zrouter ไม่ต้องการฐานข้อมูลภายนอ
 
 ### 🏗️ Architecture
 
+Bot domain models are defined in `zrouter_bot_models.py`; local Vault/Memory persistence lives in `zrouter_bot_storage.py`; shared runtime primitives live in `zrouter_runtime.py`. `zrouter.py` and `zrouter_bot.py` re-export established names to preserve existing imports. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for module boundaries.
+
 <p align="center">
   <img src="static/img/nvidia.png" alt="NVIDIA" width="64" height="64" />
 </p>
@@ -166,7 +169,8 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) สำหรับรายละเอ
 | SEC-003 | Rate limit enforcement | ✅ FIXED |
 | SEC-004 | Dead key drop (401/403) | ✅ FIXED |
 | SEC-005 | Input validation | ✅ FIXED |
-| SEC-006 | Proxy token auth (ROUTER_TOKEN) | ✅ FIXED |
+| SEC-006 | Proxy token auth (ROUTER_TOKEN) | Implemented |
+| SEC-007 | Bot vault encryption at rest | Plaintext JSON; POSIX file/directory permissions are 0600/0700; not encrypted |
 
 See [`SECURITY.md`](SECURITY.md) สำหรับรายละเอียด
 
@@ -267,7 +271,7 @@ zrouter models                      # รายการโมเดลใน ca
 zrouter models --free               # เฉพาะโมเดลฟรี
 zrouter models --paid               # เฉพาะโมเดลเสียค่าบริการ
 zrouter providers                   # รายการผู้ให้บริการพร้อมจำนวน key และ base URL
-zrouter discover                    # ค้นหาโมเดลจาก NVIDIA API อัตโนมัติ
+zrouter discover                    # ค้นหาโมเดลจาก NVIDIA API (pricing ใหม่จะเป็น unverified)
 zrouter probe                       # ส่ง request ทดสอบทุกโมเดลที่อนุญาต
 zrouter stats                       # สถิติต่อ model และต่อ key
 

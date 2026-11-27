@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 zrouter_bot.py — Bot framework for zrouter.
 
@@ -20,226 +19,49 @@ import os
 import threading
 import time
 import uuid
-from dataclasses import asdict, dataclass, field
-from enum import Enum
 from pathlib import Path
 from typing import Any, ClassVar
+
+import zrouter_bot_storage as _storage
+from zrouter_bot_models import (
+    ApprovalCard,
+    ApprovalStatus,
+    BotMemory,
+    BotStatus,
+    CalendarEvent,
+    CartItem,
+    CloudAgent,
+    Email,
+    MediaAsset,
+    Meeting,
+    NetworkPeer,
+    Page,
+    ReviewLearning,
+    Routine,
+    RoutineStatus,
+    SharedConnector,
+    ShoppingCart,
+    SkillTemplate,
+    VaultEntry,
+    VoiceSettings,
+)
+
+BOT_HOME = _storage.BOT_HOME
+HOME = _storage.HOME
+MEMORY_FILE = _storage.MEMORY_FILE
+VAULT_FILE = _storage.VAULT_FILE
+Memory = _storage.Memory
+Vault = _storage.Vault
 
 log = logging.getLogger("zrouter-bot")
 
 # --------------------------------------------------------------------------- #
 # Paths
 # --------------------------------------------------------------------------- #
-HOME = Path.home()
-BOT_HOME = HOME / ".zrouter_bot"
-BOT_HOME.mkdir(parents=True, exist_ok=True)
-
-VAULT_FILE = BOT_HOME / "vault.json"
-MEMORY_FILE = BOT_HOME / "memory.json"
 ROUTINES_FILE = BOT_HOME / "routines.json"
 SKILLS_FILE = BOT_HOME / "skills.json"
 
 MAX_FILE_BYTES = 250 * 1024 * 1024  # 250 MB (matches Grok Bot)
-
-
-# --------------------------------------------------------------------------- #
-# Enums / data classes
-# --------------------------------------------------------------------------- #
-class ApprovalStatus(str, Enum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    DENIED = "denied"
-    EXPIRED = "expired"
-
-
-class BotStatus(str, Enum):
-    IDLE = "idle"
-    WORKING = "working"
-    THINKING = "thinking"
-    WAITING_APPROVAL = "waiting_approval"
-    ERROR = "error"
-
-
-@dataclass
-class ApprovalCard:
-    id: str
-    action: str
-    details: str
-    status: ApprovalStatus = ApprovalStatus.PENDING
-    created_at: float = field(default_factory=time.time)
-    expires_at: float | None = None
-    decided_at: float | None = None
-    decided_by: str | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> ApprovalCard:
-        return cls(
-            id=d["id"],
-            action=d["action"],
-            details=d["details"],
-            status=ApprovalStatus(d.get("status", "pending")),
-            created_at=d.get("created_at", time.time()),
-            expires_at=d.get("expires_at"),
-            decided_at=d.get("decided_at"),
-            decided_by=d.get("decided_by"),
-        )
-
-
-@dataclass
-class VaultEntry:
-    id: str
-    name: str
-    kind: str  # login, card, contact, secret
-    value: dict[str, Any]
-    created_at: float = field(default_factory=time.time)
-    updated_at: float = field(default_factory=time.time)
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> VaultEntry:
-        return cls(
-            id=d["id"],
-            name=d["name"],
-            kind=d["kind"],
-            value=d["value"],
-            created_at=d.get("created_at", time.time()),
-            updated_at=d.get("updated_at", time.time()),
-        )
-
-
-@dataclass
-class BotMemory:
-    key: str
-    value: Any
-    updated_at: float = field(default_factory=time.time)
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> BotMemory:
-        return cls(
-            key=d["key"], value=d["value"], updated_at=d.get("updated_at", time.time())
-        )
-
-
-# --------------------------------------------------------------------------- #
-# Vault — credential storage
-# --------------------------------------------------------------------------- #
-class Vault:
-    """Encrypted-on-disk credential vault for bot logins/cards/contacts."""
-
-    def __init__(self, path: Path = VAULT_FILE) -> None:
-        self.path = path
-        self._entries: dict[str, VaultEntry] = {}
-        self._lock = threading.Lock()
-        self._load()
-
-    def _load(self) -> None:
-        if not self.path.exists():
-            self._entries = {}
-            return
-        try:
-            with self.path.open("r", encoding="utf-8") as f:
-                data = json.load(f)
-            self._entries = {e["id"]: VaultEntry.from_dict(e) for e in data}
-        except (OSError, ValueError, KeyError):
-            log.exception("Failed to load vault; starting empty")
-            self._entries = {}
-
-    def _save(self) -> None:
-        tmp = self.path.with_suffix(".tmp")
-        with tmp.open("w", encoding="utf-8") as f:
-            json.dump([e.to_dict() for e in self._entries.values()], f, indent=2)
-        os.replace(tmp, self.path)
-
-    def list(self) -> list[VaultEntry]:
-        with self._lock:
-            return list(self._entries.values())
-
-    def get(self, entry_id: str) -> VaultEntry | None:
-        with self._lock:
-            return self._entries.get(entry_id)
-
-    def add(self, entry: VaultEntry) -> VaultEntry:
-        with self._lock:
-            self._entries[entry.id] = entry
-            self._save()
-            return entry
-
-    def update(self, entry_id: str, value: dict[str, Any]) -> VaultEntry | None:
-        with self._lock:
-            entry = self._entries.get(entry_id)
-            if entry is None:
-                return None
-            entry.value = value
-            entry.updated_at = time.time()
-            self._save()
-            return entry
-
-    def delete(self, entry_id: str) -> bool:
-        with self._lock:
-            if entry_id not in self._entries:
-                return False
-            del self._entries[entry_id]
-            self._save()
-            return True
-
-
-# --------------------------------------------------------------------------- #
-# Memory — per-bot context persistence
-# --------------------------------------------------------------------------- #
-class Memory:
-    """Simple key/value memory store persisted to disk."""
-
-    def __init__(self, path: Path = MEMORY_FILE) -> None:
-        self.path = path
-        self._mem: dict[str, Any] = {}
-        self._lock = threading.Lock()
-        self._load()
-
-    def _load(self) -> None:
-        if not self.path.exists():
-            self._mem = {}
-            return
-        try:
-            with self.path.open("r", encoding="utf-8") as f:
-                self._mem = json.load(f)
-        except (OSError, ValueError):
-            log.exception("Failed to load memory; starting empty")
-            self._mem = {}
-
-    def _save(self) -> None:
-        tmp = self.path.with_suffix(".tmp")
-        with tmp.open("w", encoding="utf-8") as f:
-            json.dump(self._mem, f, indent=2)
-        os.replace(tmp, self.path)
-
-    def get(self, key: str, default: Any = None) -> Any:
-        with self._lock:
-            return self._mem.get(key, default)
-
-    def set(self, key: str, value: Any) -> None:
-        with self._lock:
-            self._mem[key] = value
-            self._save()
-
-    def delete(self, key: str) -> bool:
-        with self._lock:
-            if key not in self._mem:
-                return False
-            del self._mem[key]
-            self._save()
-            return True
-
-    def all(self) -> dict[str, Any]:
-        with self._lock:
-            return dict(self._mem)
 
 
 # --------------------------------------------------------------------------- #
@@ -326,27 +148,6 @@ class ApprovalEngine:
 # --------------------------------------------------------------------------- #
 # Bot — main conversational agent
 # --------------------------------------------------------------------------- #
-@dataclass
-class VoiceSettings:
-    """Voice settings for a bot (x.ai voice menu: speed slider, voice selection)."""
-
-    voice_id: str = "default"
-    speed: float = 1.0  # 0.5x to 2.0x
-    language: str = "en"
-
-    def __post_init__(self) -> None:
-        self.speed = max(0.5, min(2.0, self.speed))
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> VoiceSettings:
-        return cls(
-            voice_id=d.get("voice_id", "default"),
-            speed=d.get("speed", 1.0),
-            language=d.get("language", "en"),
-        )
 
 
 class VoiceManager:
@@ -405,28 +206,6 @@ class VoiceManager:
 # --------------------------------------------------------------------------- #
 # Shared Connectors (x.ai: share app login as shared connector)
 # --------------------------------------------------------------------------- #
-@dataclass
-class SharedConnector:
-    """A connector shared between bots (x.ai: shared connector, Allow Shared Logins)."""
-
-    id: str
-    connector_name: str
-    owner_bot_id: str
-    shared_with: list[str]  # bot_ids that can use this connector
-    created_at: float = field(default_factory=time.time)
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> SharedConnector:
-        return cls(
-            id=d["id"],
-            connector_name=d["connector_name"],
-            owner_bot_id=d["owner_bot_id"],
-            shared_with=d.get("shared_with", []),
-            created_at=d.get("created_at", time.time()),
-        )
 
 
 class ConnectorShareManager:
@@ -503,34 +282,6 @@ class ConnectorShareManager:
 # --------------------------------------------------------------------------- #
 # Review Learnings Queue (x.ai: what teammates teach waits under Review)
 # --------------------------------------------------------------------------- #
-@dataclass
-class ReviewLearning:
-    """A learning item that a teammate taught, waiting for owner/Manager approval."""
-
-    id: str
-    teacher_bot_id: str
-    lesson: str  # what was taught
-    context: str  # where/how it was taught
-    status: str  # "pending", "approved", "rejected"
-    created_at: float = field(default_factory=time.time)
-    reviewed_at: float | None = None
-    reviewed_by: str | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> ReviewLearning:
-        return cls(
-            id=d["id"],
-            teacher_bot_id=d["teacher_bot_id"],
-            lesson=d["lesson"],
-            context=d.get("context", ""),
-            status=d.get("status", "pending"),
-            created_at=d.get("created_at", time.time()),
-            reviewed_at=d.get("reviewed_at"),
-            reviewed_by=d.get("reviewed_by"),
-        )
 
 
 class ReviewQueue:
@@ -844,52 +595,6 @@ def create_bot(name: str = "zrouter-bot", bot_id: str | None = None) -> Bot:
 # --------------------------------------------------------------------------- #
 # Routine / Scheduler (x.ai: scheduled tasks, routines, cloud agents)
 # --------------------------------------------------------------------------- #
-class RoutineStatus(str, Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
-
-
-@dataclass
-class Routine:
-    """A scheduled routine that runs automatically on a cron-like schedule."""
-
-    id: str
-    name: str
-    action: str  # e.g. "chat", "file_upload", "email_send", "mcp_call"
-    params: dict[str, Any]
-    schedule: str  # e.g. "every 1 hour", "daily 09:00", "cron */5 * * * *"
-    status: RoutineStatus = RoutineStatus.PENDING
-    next_run: float | None = None
-    last_run: float | None = None
-    run_count: int = 0
-    max_runs: int | None = None
-    created_at: float = field(default_factory=time.time)
-    last_result: str | None = None
-    error_message: str | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> Routine:
-        return cls(
-            id=d["id"],
-            name=d["name"],
-            action=d["action"],
-            params=d["params"],
-            schedule=d["schedule"],
-            status=RoutineStatus(d.get("status", "pending")),
-            next_run=d.get("next_run"),
-            last_run=d.get("last_run"),
-            run_count=d.get("run_count", 0),
-            max_runs=d.get("max_runs"),
-            created_at=d.get("created_at", time.time()),
-            last_result=d.get("last_result"),
-            error_message=d.get("error_message"),
-        )
 
 
 class RoutineScheduler:
@@ -1034,34 +739,6 @@ class RoutineScheduler:
 # --------------------------------------------------------------------------- #
 # Template Skills (x.ai: template skills, Pages, skills guide)
 # --------------------------------------------------------------------------- #
-@dataclass
-class SkillTemplate:
-    """A reusable skill template for bots."""
-
-    id: str
-    name: str
-    description: str
-    category: str  # e.g. "coding", "research", "writing", "analysis"
-    prompt_template: str
-    parameters: list[str]  # parameter names
-    created_at: float = field(default_factory=time.time)
-    usage_count: int = 0
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> SkillTemplate:
-        return cls(
-            id=d["id"],
-            name=d["name"],
-            description=d["description"],
-            category=d["category"],
-            prompt_template=d["prompt_template"],
-            parameters=d.get("parameters", []),
-            created_at=d.get("created_at", time.time()),
-            usage_count=d.get("usage_count", 0),
-        )
 
 
 class SkillLibrary:
@@ -1252,34 +929,6 @@ class FileHandler:
 # --------------------------------------------------------------------------- #
 # Meeting / Call Integration (x.ai: Google Meet, Zoom, Teams calls)
 # --------------------------------------------------------------------------- #
-@dataclass
-class Meeting:
-    """Represents a meeting that a bot can join."""
-
-    id: str
-    title: str
-    platform: str  # "google_meet", "zoom", "microsoft_teams"
-    link: str
-    status: str  # "scheduled", "joined", "completed", "failed"
-    scheduled_at: float
-    joined_at: float | None = None
-    summary: str | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> Meeting:
-        return cls(
-            id=d["id"],
-            title=d["title"],
-            platform=d["platform"],
-            link=d["link"],
-            status=d["status"],
-            scheduled_at=d["scheduled_at"],
-            joined_at=d.get("joined_at"),
-            summary=d.get("summary"),
-        )
 
 
 class MeetingManager:
@@ -1429,32 +1078,6 @@ class BotHealth:
 # --------------------------------------------------------------------------- #
 # Pages (x.ai: collaborative documents - reports, memos, dashboards)
 # --------------------------------------------------------------------------- #
-@dataclass
-class Page:
-    """A collaborative document/page (x.ai: Pages - reports, memos, dashboards)."""
-
-    id: str
-    title: str
-    content: str
-    owner_bot_id: str
-    shared_with: list[str]
-    created_at: float = field(default_factory=time.time)
-    updated_at: float = field(default_factory=time.time)
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> Page:
-        return cls(
-            id=d["id"],
-            title=d["title"],
-            content=d["content"],
-            owner_bot_id=d["owner_bot_id"],
-            shared_with=d.get("shared_with", []),
-            created_at=d.get("created_at", time.time()),
-            updated_at=d.get("updated_at", time.time()),
-        )
 
 
 class PageManager:
@@ -1549,36 +1172,6 @@ class PageManager:
 # --------------------------------------------------------------------------- #
 # Cloud Agents (x.ai: cloud agents - background task agents)
 # --------------------------------------------------------------------------- #
-@dataclass
-class CloudAgent:
-    """A cloud agent that runs background tasks (x.ai: cloud agents)."""
-
-    id: str
-    name: str
-    mode: str  # e.g. "code", "research", "analysis", "writing"
-    status: str  # "idle", "running", "completed", "failed"
-    task: str | None = None
-    result: str | None = None
-    created_at: float = field(default_factory=time.time)
-    started_at: float | None = None
-    completed_at: float | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> CloudAgent:
-        return cls(
-            id=d["id"],
-            name=d["name"],
-            mode=d["mode"],
-            status=d["status"],
-            task=d.get("task"),
-            result=d.get("result"),
-            created_at=d.get("created_at", time.time()),
-            started_at=d.get("started_at"),
-            completed_at=d.get("completed_at"),
-        )
 
 
 class CloudAgentManager:
@@ -1673,34 +1266,6 @@ class CloudAgentManager:
 # --------------------------------------------------------------------------- #
 # Email Forwarding (x.ai: email forwarding)
 # --------------------------------------------------------------------------- #
-@dataclass
-class Email:
-    """Represents an email that a bot can forward."""
-
-    id: str
-    from_addr: str
-    to_addr: str
-    subject: str
-    body: str
-    status: str  # "draft", "sent", "failed"
-    created_at: float = field(default_factory=time.time)
-    sent_at: float | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> Email:
-        return cls(
-            id=d["id"],
-            from_addr=d["from_addr"],
-            to_addr=d["to_addr"],
-            subject=d["subject"],
-            body=d["body"],
-            status=d.get("status", "draft"),
-            created_at=d.get("created_at", time.time()),
-            sent_at=d.get("sent_at"),
-        )
 
 
 class EmailManager:
@@ -1780,34 +1345,6 @@ class EmailManager:
 # --------------------------------------------------------------------------- #
 # Calendar Integration (x.ai: Google Calendar, Outlook Calendar)
 # --------------------------------------------------------------------------- #
-@dataclass
-class CalendarEvent:
-    """Represents a calendar event."""
-
-    id: str
-    title: str
-    start_time: float
-    end_time: float
-    description: str
-    attendees: list[str]
-    status: str  # "scheduled", "confirmed", "cancelled"
-    created_at: float = field(default_factory=time.time)
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> CalendarEvent:
-        return cls(
-            id=d["id"],
-            title=d["title"],
-            start_time=d["start_time"],
-            end_time=d["end_time"],
-            description=d["description"],
-            attendees=d.get("attendees", []),
-            status=d.get("status", "scheduled"),
-            created_at=d.get("created_at", time.time()),
-        )
 
 
 class CalendarManager:
@@ -1888,32 +1425,6 @@ class CalendarManager:
 # --------------------------------------------------------------------------- #
 # Image/Video Creation (x.ai: image and video creation)
 # --------------------------------------------------------------------------- #
-@dataclass
-class MediaAsset:
-    """Represents a generated image or video."""
-
-    id: str
-    title: str
-    media_type: str  # "image" or "video"
-    prompt: str
-    file_path: str
-    size_bytes: int
-    created_at: float = field(default_factory=time.time)
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> MediaAsset:
-        return cls(
-            id=d["id"],
-            title=d["title"],
-            media_type=d["media_type"],
-            prompt=d["prompt"],
-            file_path=d["file_path"],
-            size_bytes=d["size_bytes"],
-            created_at=d.get("created_at", time.time()),
-        )
 
 
 class MediaManager:
@@ -1991,57 +1502,6 @@ class MediaManager:
 # --------------------------------------------------------------------------- #
 # Shopping Cart / Checkout (x.ai: shopping cards, checkout)
 # --------------------------------------------------------------------------- #
-@dataclass
-class CartItem:
-    """An item in a shopping cart."""
-
-    id: str
-    product_name: str
-    price: float
-    quantity: int
-    url: str
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> CartItem:
-        return cls(
-            id=d["id"],
-            product_name=d["product_name"],
-            price=d["price"],
-            quantity=d["quantity"],
-            url=d["url"],
-        )
-
-
-@dataclass
-class ShoppingCart:
-    """A shopping cart for a bot."""
-
-    id: str
-    owner_bot_id: str
-    items: list[CartItem]
-    status: str = "active"  # "active", "checked_out", "abandoned"
-    created_at: float = field(default_factory=time.time)
-    checked_out_at: float | None = None
-
-    def total(self) -> float:
-        return sum(item.price * item.quantity for item in self.items)
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> ShoppingCart:
-        return cls(
-            id=d["id"],
-            owner_bot_id=d["owner_bot_id"],
-            items=[CartItem.from_dict(i) for i in d.get("items", [])],
-            status=d.get("status", "active"),
-            created_at=d.get("created_at", time.time()),
-            checked_out_at=d.get("checked_out_at"),
-        )
 
 
 class CartManager:
@@ -2143,28 +1603,6 @@ class CartManager:
 # --------------------------------------------------------------------------- #
 # Tailscale / Private Network (x.ai: Tailscale plugin, private networks)
 # --------------------------------------------------------------------------- #
-@dataclass
-class NetworkPeer:
-    """A peer in a private network (Tailscale)."""
-
-    id: str
-    name: str
-    ip: str
-    status: str  # "online", "offline", "connecting"
-    last_seen: float | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> NetworkPeer:
-        return cls(
-            id=d["id"],
-            name=d["name"],
-            ip=d["ip"],
-            status=d["status"],
-            last_seen=d.get("last_seen"),
-        )
 
 
 class NetworkManager:
