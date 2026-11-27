@@ -850,25 +850,28 @@ class FreeRouter:
         if refresh or self._available is None or now - self._available_at > ttl:
             last: Exception | None = None
             for key in self._key_order():
+                r = None
                 try:
                     r = self.s.get(
                         f"{key.base_url}/models",
                         headers=self._headers(key),
                         timeout=30,
                     )
+                    if r.status_code in (401, 403):
+                        key.mark_dead()
+                        continue
+                    if r.status_code == 429:
+                        key.bench(CFG.cooldown_429)
+                        continue
+                    r.raise_for_status()
+                    self._available = [m["id"] for m in r.json().get("data", [])]
+                    self._available_at = time.time()
+                    return self._available
                 except requests.RequestException as e:
                     last = e
-                    continue
-                if r.status_code in (401, 403):
-                    key.mark_dead()
-                    continue
-                if r.status_code == 429:
-                    key.bench(CFG.cooldown_429)
-                    continue
-                r.raise_for_status()
-                self._available = [m["id"] for m in r.json().get("data", [])]
-                self._available_at = time.time()
-                return self._available
+                finally:
+                    if r is not None:
+                        r.close()
             raise RouterError(502, f"Could not list models with any key ({last})")
         return self._available or []
 
@@ -1123,10 +1126,11 @@ class FreeRouter:
         **kw: Any,
     ) -> Iterator[str]:
         """Generator of text deltas. Always closes the upstream response on exit."""
-        resp, _, _ = self.open_chat_stream(
-            self._body(messages, kw), route=route, model=model
-        )
+        resp = None
         try:
+            resp, _, _ = self.open_chat_stream(
+                self._body(messages, kw), route=route, model=model
+            )
             for line in resp.iter_lines(decode_unicode=True):
                 if not line or not line.startswith("data:"):
                     continue
@@ -1140,7 +1144,8 @@ class FreeRouter:
                 if ch and (d := ch[0].get("delta", {}).get("content")):
                     yield d
         finally:
-            resp.close()
+            if resp is not None:
+                resp.close()
 
     def embeddings(self, body: dict[str, Any]) -> dict[str, Any]:
         cands = self.allowed(CFG.embed_allow, deny=False)
@@ -1161,6 +1166,7 @@ class FreeRouter:
             key = next(
                 (k for k in self._key_order() if k.is_ready()), self._key_order()[0]
             )
+            r = None
             try:
                 key.limiter.wait()
                 r = self.s.post(
@@ -1180,6 +1186,9 @@ class FreeRouter:
                 res[m] = (r.status_code, round(time.time() - t0, 2))
             except requests.RequestException as e:
                 res[m] = (type(e).__name__, round(time.time() - t0, 2))
+            finally:
+                if r is not None:
+                    r.close()
         return res
 
     def key_status(self) -> list[tuple[str, str, str, int, int]]:

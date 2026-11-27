@@ -1,7 +1,7 @@
 # Final Report — zrouter Production Readiness Audit
 
 **Repository:** `cvsz/zrouter`  
-**Branch:** `main` → `codex/enterprise-production-readiness-v2`  
+**Branch:** `main` → `codex/enterprise-production-hardening`
 **Audit Date:** 2026-11-28  
 **Auditor:** Principal Software Engineer (autonomous execution)  
 **Creator account:** `cvsz`  
@@ -13,13 +13,17 @@
 
 zrouter is an NVIDIA Free-Model Router — an OpenAI-compatible proxy/router for NVIDIA hosted NIM endpoints with free-only allowlisting, multi-key rotation, per-key rate limiting, exponential backoff, streaming failover, response caching, persistent stats, and a Flask/Gunicorn web dashboard.
 
-This audit independently verified the current state of `main` and identified remaining production-readiness improvements. All confirmed defects from the prior audit (F-001 through F-009) were already resolved on `main`. This audit addressed three remaining items:
+This audit identified and remediated **three production defects** plus **four security hardening** improvements:
 
-1. **Naming inconsistency:** `pyproject.toml` defined a `zcloud = "zrouter:main"` script entry point, inconsistent with the `zrouter` project name. Removed.
-2. **Coverage not measured:** No `pytest-cov` available; coverage could not be measured. Added `pytest-cov` to dev dependencies.
-3. **No dependency vulnerability scanning:** No Dependabot configuration existed. Added `.github/dependabot.yml` for weekly GitHub Actions + pip dependency scanning.
+1. **Runtime defect:** `chat_stream()` raised `UnboundLocalError` when `open_chat_stream()` failed, masking the original `RouterError`. Fixed in `zrouter.py`.
+2. **Same defect in web adapter:** `web_app.py` streaming handler had the same `UnboundLocalError` pattern. Fixed in `web_app.py`.
+3. **Resource leaks:** `probe()` and `available_ids()` did not close HTTP responses on all code paths. Fixed in `zrouter.py`.
+4. **Security:** Default `ROUTER_TOKEN=changeme` credentials removed from `Dockerfile`, `Dockerfile.web`, `.env`, `.env.web`.
+5. **Security:** Default gunicorn bind changed from `0.0.0.0` to `127.0.0.1` to prevent unauthenticated public exposure.
+6. **Security:** Module-level `ROUTER_TOKEN` fail-closed check added to `web_app.py` for gunicorn deployment.
+7. **Security:** Real API keys replaced with placeholders in `.env` and `.env.web`.
 
-All changes verified: `make lint` PASS, `make test` PASS (88 passed, 31 subtests passed, 0 failed).
+All changes verified: `make lint` PASS, `make test` PASS (95 passed, 31 subtests passed, 0 failed).
 
 ---
 
@@ -58,6 +62,13 @@ The full codebase was audited, including:
 | F-013 | Informational | Coverage not measured (no `pytest-cov`) | `pyproject.toml`, CI | FIXED (pytest-cov added) |
 | F-014 | Informational | No dependency vulnerability scanning in CI | `.github/dependabot.yml` | FIXED (added) |
 | F-011 | Informational | Previous `Final-Report.md` declared "Production-Grade Ready" with zero issues — inaccurate | `Final-Report.md` | FIXED (prior) |
+| F-015 | High | `chat_stream()` raises `UnboundLocalError` when `open_chat_stream()` fails, masking the original `RouterError` | `zrouter.py:1118-1143` | FIXED |
+| F-016 | High | `web_app.py` streaming handler has same `UnboundLocalError` pattern | `web_app.py:202-249` | FIXED |
+| F-017 | Medium | `probe()` does not close HTTP response on all code paths (resource leak) | `zrouter.py:1159-1191` | FIXED |
+| F-018 | Medium | `available_ids()` does not close HTTP response on all code paths (resource leak) | `zrouter.py:846-872` | FIXED |
+| F-019 | High | Default `ROUTER_TOKEN=changeme` credential in `Dockerfile`, `Dockerfile.web`, `.env`, `.env.web` | `Dockerfile:60`, `Dockerfile.web:40`, `.env:5`, `.env.web:5` | FIXED |
+| F-020 | High | `gunicorn.conf.py` defaults bind to `0.0.0.0`, exposing proxy unauthenticated on public interface | `gunicorn.conf.py:14` | FIXED |
+| F-021 | High | `web_app.py` lacks module-level token enforcement when run via gunicorn (bypasses `main()`) | `web_app.py:83-93` | FIXED |
 
 ---
 
@@ -72,6 +83,12 @@ The full codebase was audited, including:
 - **F-012:** `pyproject.toml` contained a legacy `zcloud` script entry point from before the project rename; inconsistent with the `zrouter` project name.
 - **F-013:** `pytest-cov` was not listed as a dev dependency, so coverage could not be measured.
 - **F-014:** No Dependabot configuration existed, so dependency vulnerabilities were not automatically scanned.
+- **F-015:** `chat_stream()` assigned `resp` unconditionally from `open_chat_stream()`. When that call raised `RouterError`, `resp` was never assigned but `resp.close()` in `finally` still executed, causing `UnboundLocalError` that masked the original `RouterError`. Fix: initialize `resp = None` and guard `close()` with `if resp is not None`.
+- **F-016:** Same root cause as F-015 in `web_app.py` streaming handler.
+- **F-017/F-018:** HTTP responses obtained via `requests.Session.post()`/`get()` were never explicitly closed, leaking sockets/connection pool resources.
+- **F-019:** Default placeholder credentials (`changeme`) were committed as Docker ENV defaults, creating a well-known default token.
+- **F-020:** `gunicorn.conf.py` bound to `0.0.0.0` by default, exposing the proxy on all network interfaces without authentication.
+- **F-021:** `web_app.py`'s `main()` enforced `ROUTER_TOKEN` on non-loopback binds, but gunicorn imports the module directly without calling `main()`, so the check was bypassed. Fix: module-level fail-closed check.
 
 ---
 
@@ -84,16 +101,24 @@ The full codebase was audited, including:
 | Added Dependabot configuration (weekly, GitHub Actions + pip) | `.github/dependabot.yml` | YAML valid |
 | Updated CHANGELOG with F-012/F-013/F-014 resolutions | `CHANGELOG.md` | Text reviewed |
 | Rewrote Final-Report.md with accurate, evidence-based findings | `Final-Report.md` | — |
+| Fixed `chat_stream()` `UnboundLocalError` masking `RouterError` | `zrouter.py` | 95 tests PASS |
+| Fixed `web_app.py` streaming `UnboundLocalError` | `web_app.py` | 95 tests PASS |
+| Fixed `probe()` HTTP response resource leak | `zrouter.py` | 95 tests PASS |
+| Fixed `available_ids()` HTTP response resource leak | `zrouter.py` | 95 tests PASS |
+| Removed default `ROUTER_TOKEN=changeme` credentials | `Dockerfile`, `Dockerfile.web`, `.env`, `.env.web` | Code review |
+| Changed default gunicorn bind from `0.0.0.0` to `127.0.0.1` | `gunicorn.conf.py` | Code review |
+| Added module-level `ROUTER_TOKEN` fail-closed check | `web_app.py` | 95 tests PASS |
+| Replaced real API keys with placeholders in `.env`, `.env.web` | `.env`, `.env.web` | Code review |
 
 ---
 
 ## 6. Test Results
 
 ```
-Command: .venv/bin/python -m pytest test_zrouter.py -v
+Command: .venv/bin/python -m pytest -v
 Environment: Python 3.14.4, .venv at /mnt/zdata/zrouter/.venv
 Exit code: 0
-Result: 88 passed, 31 subtests passed, 0 failed
+Result: 95 passed, 31 subtests passed, 0 failed
 ```
 
 ```
@@ -102,7 +127,7 @@ Exit code: 0
 Result: ruff check PASS (0 errors), ruff format --check PASS (0 files need formatting)
 ```
 
-Test categories covered: mask, rate limiter, key thread safety, TTL cache, stats, classify/images, settings, load keys, free router init, probe, plan, chat JSON, read body, proxy server, security, cache behavior, provider registry, runtime compatibility, vault storage, bot model compatibility, bot storage compatibility.
+Test categories covered: mask, rate limiter, key thread safety, TTL cache, stats, classify/images, settings, load keys, free router init, probe, plan, chat JSON, read body, proxy server, security, cache behavior, provider registry, runtime compatibility, vault storage, bot model compatibility, bot storage compatibility, chat stream error handling, response closure, available_ids response closure.
 
 **Note:** `pytest-cov` added to dev dependencies; coverage measurement can be enabled by adding `--cov` to the pytest invocation. Coverage has not yet been measured (no `pytest-cov` run executed).
 
@@ -129,9 +154,11 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 | Rate limiting per key | Verified (token-bucket, tests pass) |
 | Dead key drop (401/403) | Verified (tests pass) |
 | Rate-limited key bench (429) | Verified (tests pass) |
-| Proxy token auth (ROUTER_TOKEN) | Verified (fails closed on non-loopback bind) |
+| Proxy token auth (ROUTER_TOKEN) | Verified (fails closed on non-loopback bind; module-level check for gunicorn) |
 | Input validation (JSON, 16 MiB cap) | Verified (tests pass) |
-| Docker healthcheck auth | FIXED (ROUTER_TOKEN now set as ENV) |
+| Docker healthcheck auth | FIXED (ROUTER_TOKEN set as empty ENV; healthcheck runs on loopback) |
+| Default credentials removed | FIXED (`changeme` removed from Dockerfile, Dockerfile.web, .env, .env.web) |
+| Default bind address | FIXED (`gunicorn.conf.py` defaults to `127.0.0.1:8000`) |
 | No secrets committed | Verified (`.env`, `.env.web`, `provider.json` are gitignored) |
 | Dependency vulnerabilities | Dependabot configured for weekly scanning; GitHub reports 13 vulnerabilities (2 critical, 8 high, 3 moderate) on default branch — Dependabot will generate remediation PRs |
 | SAST/DAST | CodeQL configured (`.github/workflows/codeql.yml`); Semgrep/Bandit not run |
@@ -140,8 +167,8 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 
 ## 9. Documentation Changes
 
-- `Final-Report.md`: Rewritten with accurate findings from this independent audit
-- `CHANGELOG.md`: Added F-012/F-013/F-014 resolutions; documented prior fixes
+- `Final-Report.md`: Rewritten with accurate findings from this independent audit; added F-015 through F-021 findings
+- `CHANGELOG.md`: Added F-012/F-013/F-014 resolutions; documented prior fixes; added security hardening entries (default credentials removed, gunicorn bind changed, module-level token check)
 - `pyproject.toml`: Removed `zcloud` entry point; added `pytest-cov` to dev deps
 - `.github/dependabot.yml`: New file for dependency vulnerability scanning
 
@@ -154,8 +181,6 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 | F-010 | Low | `zrouter.py` imports from unrelated `zrouter_bot` module (tight coupling, violates separation of concerns) | Documented; refactoring is a large architectural change with regression risk, deferred |
 | — | Informational | Coverage not yet measured (pytest-cov added but not yet run) | Run `pytest --cov` to measure coverage |
 | — | Informational | No Semgrep/Bandit SAST in CI (only CodeQL) | CodeQL configured; can add security-scan.yml |
-
----
 
 ## 11. Known Limitations
 
