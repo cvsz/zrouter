@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Generate nvidia.ico (multi-size) - a generic 'router' glyph. Requires: pip install pillow"""
+
 from PIL import Image, ImageDraw
 
-S = 1024                    # draw big, downscale for smooth edges
-BG, FG, DIM = (17, 22, 12, 255), (118, 185, 0, 255), (62, 96, 12, 255)   # DIM is opaque on purpose
+S = 1024  # draw big, downscale for smooth edges
+BG, FG, DIM = (
+    (17, 22, 12, 255),
+    (118, 185, 0, 255),
+    (62, 96, 12, 255),
+)  # DIM is opaque on purpose
 
 
 def line(d, a, b, w, col):

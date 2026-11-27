@@ -65,13 +65,13 @@ jobs:
 
       - name: Build Windows GUI executable
         run: |
-          pyinstaller --noconfirm --clean --onefile --windowed --icon nvidia.ico --name zcloud-gui zcloud-gui.py
+          pyinstaller --noconfirm --clean --onefile --windowed --icon nvidia.ico --name zrouter-gui zrouter-gui.py
 
       - name: Upload Windows GUI executable
         uses: actions/upload-artifact@v4
         with:
-          name: zcloud-gui-windows-exe
-          path: dist/zcloud-gui.exe
+          name: zrouter-gui-windows-exe
+          path: dist/zrouter-gui.exe
 
   release-windows:
     needs: [build-windows, build-windows-gui]
@@ -92,13 +92,13 @@ jobs:
       - name: Download Windows GUI executable
         uses: actions/download-artifact@v4
         with:
-          name: zcloud-gui-windows-exe
+          name: zrouter-gui-windows-exe
           path: dist/
 
       - name: Release Windows executables
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/nvidia-router.exe dist/zcloud-gui.exe
+          files: dist/nvidia-router.exe dist/zrouter-gui.exe
           tag_name: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

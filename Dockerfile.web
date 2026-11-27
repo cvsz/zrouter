@@ -35,6 +35,9 @@ ENV NVIDIA_RPM=35
 ENV NVIDIA_CACHE_TTL=3600
 ENV NVIDIA_TIMEOUT=90
 ENV NVIDIA_MAX_WAIT=60
+# ROUTER_TOKEN must be overridden at runtime (docker run -e ROUTER_TOKEN=...)
+# Healthcheck requires a valid token; default is a placeholder that must be changed.
+ENV ROUTER_TOKEN=changeme
 
 EXPOSE 8000
 

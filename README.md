@@ -5,13 +5,15 @@
 [![CI](https://github.com/cvsz/zrouter/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/ci-cd.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-ghcr.io-blue.svg)](https://github.com/cvsz/zrouter/pkgs/container/zrouter)
+[![CodeQL](https://github.com/cvsz/zrouter/actions/workflows/codeql.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/codeql.yml)
 [![Release](https://img.shields.io/github/v/release/cvsz/zrouter)](https://github.com/cvsz/zrouter/releases)
 [![Final Report](https://img.shields.io/badge/Report-Final--Report.md-blue)](Final-Report.md)
 
 ![zrouter Social Preview](https://repository-images.githubusercontent.com/1298675090/168568c9-a175-4d82-9733-955d6d7bf7b4)
 
 **เวอร์ชันปัจจุบัน:** `1.0.0`  
-**สถานะ:** Active development — release readiness is determined by commit-scoped CI and runtime evidence, not feature claims.
+**สถานะ:** `1.0.0` — free-only allowlist, multi-key rotation, auto routing, streaming, cache, stats และ OpenAI-compatible proxy. ดูรายละเอียดการตรวจสอบใน [Final-Report.md](Final-Report.md).
 
 ---
 
@@ -19,12 +21,15 @@
 
 | Check | Badge | Status |
 |-------|-------|--------|
-| CI / Build | [![CI](https://github.com/cvsz/zrouter/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/ci-cd.yml) | Live workflow status |
+| CI / Build | [![CI](https://github.com/cvsz/zrouter/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/ci-cd.yml) | Configured |
+| CodeQL | [![CodeQL](https://github.com/cvsz/zrouter/actions/workflows/codeql.yml/badge.svg)](https://github.com/cvsz/zrouter/actions/workflows/codeql.yml) | Configured |
 | License | [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE) | MIT |
 | Python | [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/) | 3.10+ |
 | Final Report | [![Final Report](https://img.shields.io/badge/Report-Final--Report.md-blue)](Final-Report.md) | Complete |
 
 ---
+
+> **Note:** Security Scan, Release Gate, and Coverage badges were removed because the corresponding GitHub Actions workflows do not exist in this repository and coverage has not been measured. These can be added when the corresponding CI jobs are implemented.
 
 ## ภาพรวม (Executive Summary)
 
