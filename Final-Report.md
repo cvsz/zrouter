@@ -212,13 +212,18 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 
 | Item | Value |
 |------|-------|
-| Branch | `codex/enterprise-production-hardening` |
+| Branch (PR #17) | `codex/enterprise-production-hardening` |
+| Branch (PR #18) | `codex/enterprise-production-hardening-v2` |
 | Base | `main` |
 | Commit type | Signed (`git commit -S`) |
 | Signing key | C3CDE65F606F7BF0 (nistp256, cvsz) |
 | Creator account | cvsz |
 | Reviewer account | policedbc (separate, required for approval) |
-| Commit SHA | 03d19737a6d6a5ad5377143bdd1a649104c03936 |
+| Commit SHA (PR #17) | 03d19737a6d6a5ad5377143bdd1a649104c03936 |
+| Commit SHA (PR #18) | ca95a6f647340ae46e43b132bdc74e970abab434 |
+| Commit SHA (PR #18 fix 1) | b5ae17c — web_app.py executable (EXE001) |
+| Commit SHA (PR #18 fix 2) | 2b9957b — CI pytest-cov install |
+| Merge commit SHA | e010281 (PR #18 merge into main) |
 
 ---
 
@@ -226,10 +231,13 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 
 | Item | Value |
 |------|-------|
-| PR title | Enterprise Production Hardening Improvements |
-| PR URL | https://github.com/cvsz/zrouter/pull/17 |
-| Commit SHA | 03d19737a6d6a5ad5377143bdd1a649104c03936 |
-| Merge commit | 6743972 |
+| PR #17 title | Enterprise Production Hardening Improvements |
+| PR #17 URL | https://github.com/cvsz/zrouter/pull/17 |
+| PR #17 status | MERGED |
+| PR #18 title | Enterprise Production Readiness Improvements v2 |
+| PR #18 URL | https://github.com/cvsz/zrouter/pull/18 |
+| PR #18 status | MERGED |
+| PR #18 commit SHA | ca95a6f647340ae46e43b132bdc74e970abab434 |
 
 ---
 
@@ -237,10 +245,11 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 
 | Item | Status |
 |------|--------|
-| Reviewer | policedbc (separate from creator cvsz) |
+| Reviewer (PR #17) | policedbc (separate from creator cvsz) |
+| Reviewer (PR #18) | policedbc (separate from creator cvsz) |
 | Review type | Independent (does not rely on creator's audit) |
-| Approval | APPROVED by `policedbc` (separate from creator `cvsz`) |
-| Review commit | PRR_kwDOVvUdgs8AAAABaybhPg |
+| Approval (PR #17) | APPROVED by `policedbc` |
+| Approval (PR #18) | APPROVED by `policedbc` |
 
 ---
 
@@ -248,11 +257,14 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 
 | Item | Status |
 |------|--------|
-| `ci-cd.yml` | Fixed (`make` instead of `.venv/bin/make`) |
+| `ci-cd.yml` | Fixed (`make` instead of `.venv/bin/make`; `pytest-cov` installed) |
 | `build-windows.yml` | Fixed (`zrouter-gui.py` instead of `zcloud-gui.py`) |
 | `codeql.yml` | Configured for Python and GitHub Actions |
-| `dependabot.yml` | New: weekly GitHub Actions + pip dependency scanning |
-| GitHub Actions run | Triggered on PR push |
+| `dependabot.yml` | Weekly GitHub Actions + pip dependency scanning |
+| `lint-and-test` (PR #18) | PASS |
+| CodeQL (PR #18) | PASS |
+| Analyze actions (PR #18) | PASS |
+| Analyze python (PR #18) | PASS |
 
 ---
 
@@ -260,9 +272,11 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 
 | Item | Status |
 |------|--------|
-| Merge | MERGED via `gh pr merge --merge --delete-branch` (PR #17) |
-| Post-merge verification | PASSED (lint PASS, 95 tests PASS on `main`) |
-| Merge commit | 6743972 |
+| Merge (PR #17) | MERGED via `gh pr merge --merge --delete-branch` |
+| Merge (PR #18) | MERGED via `gh pr merge --merge --delete-branch` |
+| Post-merge verification (PR #17) | PASSED (lint PASS, 95 tests PASS on `main`) |
+| Post-merge verification (PR #18) | PASSED (lint PASS, 95 tests PASS on `main`) |
+| Merge commit (PR #18) | e010281 |
 | Branch deleted | Yes (`--delete-branch`) |
 
 ---
@@ -272,15 +286,40 @@ Docker builds, PyInstaller builds, and Windows cross-compilation were NOT attemp
 **Status: RELEASED**
 
 All code defects have been fixed and verified:
+
+### PR #17 (Enterprise Production Hardening)
+- `chat_stream()` `UnboundLocalError` masking `RouterError` — FIXED
+- `web_app.py` streaming `UnboundLocalError` — FIXED
+- `probe()` HTTP response resource leak — FIXED
+- `available_ids()` HTTP response resource leak — FIXED
+- Default `ROUTER_TOKEN=changeme` credentials removed — FIXED
+- Default gunicorn bind changed from `0.0.0.0` to `127.0.0.1` — FIXED
+- Module-level `ROUTER_TOKEN` fail-closed check — FIXED
+- Real API keys replaced with placeholders — FIXED
+- `zcloud` entry point removed from pyproject.toml — FIXED
+- `pytest-cov` added to dev dependencies — FIXED
+- Dependabot configuration added — FIXED
+- Docker healthcheck auth fixed — FIXED
+- CI/CD workflows fixed — FIXED
+
+### PR #18 (Enterprise Production Readiness v2)
+- `web_app.py` added to `make lint` / `make format` targets — FIXED (closes lint gap)
+- `pytest-cov` added to Makefile REQUIREMENTS — FIXED
+- Coverage reporting enabled in `make test` — FIXED
+- `ROUTER_TOKEN=changeme` removed from `.env.web.example` — FIXED
+- `.coverage` added to `.gitignore` — FIXED
+- `web_app.py` made executable (resolves ruff EXE001) — FIXED
+- CI workflow updated to install `pytest-cov` — FIXED
+
 - `make lint`: PASS (0 ruff errors, 0 format issues)
 - `make test`: 95 passed, 31 subtests passed, 0 failed
 - Findings F-015 through F-021 resolved
 - F-010 documented and deferred (architectural technical debt)
 
 All release pipeline steps completed:
-- [x] Signed commit created (03d1973, GPG verified)
-- [x] Branch pushed (codex/enterprise-production-hardening)
-- [x] PR created (#17)
+- [x] Signed commit created (ca95a6f, GPG verified)
+- [x] Branch pushed (codex/enterprise-production-hardening-v2)
+- [x] PR created (#18)
 - [x] Independent review by `policedbc` completed and approved
 - [x] Approval verified
 - [x] Merge completed via `gh pr merge --merge --delete-branch`
@@ -288,4 +327,4 @@ All release pipeline steps completed:
 
 Signed-off: Principal Software Engineer  
 Date: 2026-11-28  
-Status: RELEASED — PR #17 merged into main
+Status: RELEASED — PR #18 merged into main
